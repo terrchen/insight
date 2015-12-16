@@ -27,4 +27,16 @@ In the Chrome Extensions page, look for the "Developer mode" checkbox, which is 
 
 With the developer mode enabled, you should find a button called "Load unpacked extensions...", near the top of the page.  Click on it, and give it the path to the **chrome** directory, that was mentioned in step 1.
 
-If all went as planned, you should find the GitSense Extension in your Chrome Extension page, which means you are now GitSense enabled.
+If all went as planned, you should find the GitSense Extension in your Chrome Extension page, which means you are now GitSense enabled.  
+
+Below is a short list of the more popular repos that are GitSense ready.
+
+https://github.com/twbs/bootstrap
+https://github.com/facebook/react
+https://github.com/apache/spark
+https://github.com/apple/swift
+https://github.com/vhf/free-programming-books
+https://github.com/FreeCodeCamp/FreeCodeCamp
+https://github.com/angular/angular.js
+https://github.com/mbostock/d3
+https://github.com/FortAwesome/Font-Awesome
