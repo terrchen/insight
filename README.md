@@ -32,11 +32,19 @@ If all went as planned, you should find the GitSense Extension in your Chrome Ex
 Below is a short list of the more popular repos that are GitSense ready.
 
 https://github.com/twbs/bootstrap
+
 https://github.com/facebook/react
+
 https://github.com/apache/spark
+
 https://github.com/apple/swift
+
 https://github.com/vhf/free-programming-books
+
 https://github.com/FreeCodeCamp/FreeCodeCamp
+
 https://github.com/angular/angular.js
+
 https://github.com/mbostock/d3
+
 https://github.com/FortAwesome/Font-Awesome
