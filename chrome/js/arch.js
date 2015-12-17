@@ -24,7 +24,8 @@ var sdes = {
         githubApiUrl: "https://api.github.com",
         gitsenseApiUrls: {
             github: "https://api.gitsense.com/github"
-        }
+        },
+        gitsenseHomeUrl: "https://gitsense.github.io"
     },
     events: {},
     gitsense: {

@@ -53,5 +53,4 @@ sdes.gitsense.data.commits = function(host, owner, repo) {
             }
         });
     }
-
 }

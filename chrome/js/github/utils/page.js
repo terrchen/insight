@@ -105,10 +105,9 @@ sdes.github.utils.page = function() {
                     return; 
                 }
 
-                var type  = button.childNodes[1].innerText.replace(/:$/, "").toLowerCase(),
-                    value = button.childNodes[3].innerText,
-                    head  = type === "tag" ? null : getHeadCommit(type),
-
+                var type   = button.childNodes[1].innerText.replace(/:$/, "").toLowerCase(),
+                    value  = button.childNodes[3].innerText,
+                    head   = type === "tag" ? null : getHeadCommit(type),
                     branch = 
                         gitsenseBranch === null ? 
                             type === "tree" || type === "tag" ? 
@@ -120,7 +119,8 @@ sdes.github.utils.page = function() {
                     owner: repoOwner,
                     repo: repoName,
                     branch: branch,
-                    head: head
+                    head: head,
+                    commits: getPageCommits()
                 });
 
                 function getHeadCommit(type) {
@@ -142,6 +142,42 @@ sdes.github.utils.page = function() {
                         default:
                             throw("GitSense: Unrecognized button type '"+type+"'");
                     }
+                }
+
+                function getPageCommits() {
+                    var commits = [],
+                        elems = document.getElementsByClassName("commit-title"),
+                        commit,
+                        kids,
+                        kid,
+                        i,
+                        j;
+
+                    for ( i = 0; i < elems.length; i++ ) {
+                        kids = elems[i].childNodes;
+
+                        for ( j = 0; j < kids.length; j++ ) {
+                            kid = kids[j];
+
+                            if ( 
+                                kid.tagName === undefined ||
+                                kid.tagName.toLowerCase() !== "a" ||
+                                kid.className !== "message" 
+                            ) {
+                                continue;
+                            }
+
+                            commit = kid.href.split("/").pop();
+
+                            if ( commit.length !== 40 )
+                                continue;
+
+                            commits.push(commit);
+                            break; 
+                        }
+                    }
+
+                    return commits;
                 }
             }
         }

@@ -157,12 +157,15 @@ sdes.github.pages.commits = function(page) {
                 message.parentNode.removeChild(message);
 
             message =
-                 htmlUtil.createSpan({
+                 htmlUtil.createLink({
                         id: messageId,
-                        text: "GitSense not available",
+                        href: sdes.config.gitsenseHomeUrl+"/not-available.html",
+                        html: 
+                            "GitSense is not available<br>"+
+                            "for this repository",
                         style: {
                             cssFloat: "right",
-                            color: "#999",
+                            color: "#aaa",
                             textAlign: "right"
                         }
                     });
@@ -199,7 +202,18 @@ sdes.github.pages.commits = function(page) {
                 fileNavBody.appendChild(msg);
             }
 
-            function renderLatest() { 
+            function renderLatest() {
+                var distance = 0,
+                    i;
+
+                for ( i = 0; i < page.commits.length; i++ ) {
+                    if ( page.commits[i] !== latest.head.name )
+                        continue;
+                    
+                    distance = i + 1;
+                    break;  
+                }
+                    
                 var link = 
                         htmlUtil.createLink({
                             id: messageId,
@@ -207,9 +221,13 @@ sdes.github.pages.commits = function(page) {
                                 "/"+page.owner+"/"+page.repo+"/commits/"+
                                 latest.head.name+"?gitsense-branch="+page.branch,
                             html: 
-                                "Browse latest GitSense index<br>"+
-                                latest.head.name.substring(0,8)+" - "+
-                                new moment(latest.head.commitTime).fromNow(),
+                                "Browse the latest GitSense index<br>"+
+                                latest.head.name.substring(0,7)+" - "+
+                                (
+                                    distance === 0 ? 
+                                        new moment(latest.head.commitTime).fromNow() :
+                                        distance+" commits ago"
+                                ),
                             style: {
                                 cssFloat: "right",
                                 textAlign: "right"
@@ -738,7 +756,9 @@ sdes.github.pages.commits = function(page) {
                         new sdes.github.ui.input.search({
                             align: "right",
                             value: "",
-                            placeholder: "Search branch commits",
+                            placeholder: 
+                                "Search branch commits"+
+                                (branchHead.indexedDiffs ? " and diffs" : ""),
                             onenter: pressedEnter
                         });
 
