@@ -3,7 +3,7 @@ If you are not familiar with GitSense, you can learn more about it here
 
 http://gitsense.github.io
 
-If you were just there, and you are here because you want to manually install the GitSense Chrome Extension or if you want to see what makes it tick, then you've come to the right place.  The source code is open sourced and is licensed under the MIT license, so you can do as you please, but be forewarned, the code structure will most likely change in the near future, to make it easier to develop for other browsers, like Firefox.
+If you are here because you want to manually install the GitSense Chrome Extension or if you want to see what makes it tick, then you've come to the right place.  The source code is open sourced and is licensed under the MIT license, so you can do as you please, but be forewarned, the code structure will most likely change in the near future, to make it easier to develop for other browsers, like Firefox.
 
 ## Google Chrome Install Instructions
 
