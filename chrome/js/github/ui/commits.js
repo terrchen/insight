@@ -1,9 +1,10 @@
-sdes.github.ui.commits = function(owner, repo, renderTo, groupHeaderOpacity) {
+sdes.github.ui.commits = function(owner, repo, renderTo, groupHeaderOpacity, groupTitlePrefix) {
     var htmlUtil = new sdes.utils.html(),
         varUtil  = new sdes.utils.variable(),
+        ghrepo   = new sdes.github.data.repo(owner, repo),
         commits  = [],
         lastDate,
-        ol;
+        orderedList;
 
     this.add = function(commit, options) {
         if ( options === undefined )
@@ -44,6 +45,7 @@ sdes.github.ui.commits = function(owner, repo, renderTo, groupHeaderOpacity) {
                 htmlUtil.createImage({
                     cls: "avatar",
                     src: gravatar,
+                    title: "Click avatar to sync image with GitHub",
                     style: {
                         height: "36px",
                         width: "36px"
@@ -75,7 +77,7 @@ sdes.github.ui.commits = function(owner, repo, renderTo, groupHeaderOpacity) {
                 htmlUtil.createDiv({
                     cls: "commit-desc",
                     style: {
-                        display: options.showMsg ? "block" : null
+                        display: options.showMsg ? "block" : "none"
                     }
                 }),
             msgText =
@@ -133,7 +135,42 @@ sdes.github.ui.commits = function(owner, repo, renderTo, groupHeaderOpacity) {
             
         lastDate = date;
 
-        ol.appendChild(li);
+        orderedList.appendChild(li);
+
+        updateAvatar(commit.authorEmail, avatar);
+
+        // Everything from here on is very quick hack and
+        // will change in the future.
+    
+        avatar.style.cursor = "pointer";
+
+        avatar.onclick = function() {
+            var img = this;
+
+            ghrepo.getCommit(
+                commit.name, 
+                function(ghcommit, error) {
+                    if ( error !== undefined )
+                        throw(error);
+
+                    if ( 
+                        varUtil.isNoU(ghcommit.author) || 
+                        varUtil.isNoU(ghcommit.author.avatar_url)
+                    ) {
+                        console.warn("No GitHub mapping for commit author "+commit.authorEmail);
+                        return; 
+                    }
+
+                    var avatars = {};
+
+                    avatars[commit.authorEmail] = ghcommit.author.avatar_url;
+
+                    new sdes.gitsense.data.users().storeAvatars(avatars);
+
+                    img.src = ghcommit.author.avatar_url;
+                }
+            );
+        }
     }
 
     function createNewGroup(date) {
@@ -142,16 +179,19 @@ sdes.github.ui.commits = function(owner, repo, renderTo, groupHeaderOpacity) {
                     cls: "commit-group-title",
                     html: 
                         "<span class='octicon octicon-git-commit'></span>"+
-                        "Commits on "+date,
+                        (varUtil.isNoU(groupTitlePrefix) ? "Commits on" : groupTitlePrefix)+" "+date,
                     style: {
                         opacity: varUtil.isNoU(groupHeaderOpacity) ? null : groupHeaderOpacity,
                     }
                 });
 
-        ol = htmlUtil.createOrderedList({cls: "commit-group table-list table-list-bordered"});
+        orderedList = 
+            htmlUtil.createOrderedList({
+                cls: "commit-group table-list table-list-bordered"
+            });
 
         renderTo.appendChild(div);
-        renderTo.appendChild(ol);
+        renderTo.appendChild(orderedList);
     }
 
     function getCommitterMessage(commit) {
@@ -160,5 +200,14 @@ sdes.github.ui.commits = function(owner, repo, renderTo, groupHeaderOpacity) {
                 " by "+commit.committerEmail;
 
         return msg;
-    } 
+    }
+ 
+    function updateAvatar(authorEmail, avatar) {
+        chrome.storage.local.get(authorEmail, function(emailToImage){
+            if ( emailToImage[authorEmail] === undefined )
+                return;
+
+            avatar.src = emailToImage[authorEmail];
+        });
+    }
 }

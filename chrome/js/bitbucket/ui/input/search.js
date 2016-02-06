@@ -46,7 +46,8 @@ sdes.github.ui.input.search = function(params) {
                     borderBottomLeftRadius: "0px",
                     minWidth: "33px",
                     textAlign: "center",
-                    top: "-8px"
+                    paddingTop: "8px",
+                    paddingBottom: "8px"
                 }
             });
 

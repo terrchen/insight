@@ -1,4 +1,6 @@
 sdes.github.data.repo = function(owner, name) {
+    "use strict";
+
     var apiUrl = sdes.config.githubApiUrl;
 
     this.get = function(callback) {
@@ -25,4 +27,15 @@ sdes.github.data.repo = function(owner, name) {
         });
     }
 
+    this.getCommit = function(sha, callback) {
+        $.ajax({
+            url: apiUrl+"/repos/"+owner+"/"+name+"/commits/"+sha,
+            success: function (commit) {
+                callback(commit);
+            },
+            error: function(e) {
+                callback(null, e);
+            }
+        });
+    }
 }

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GitSense Configuration</title>
+    <style>
+        h3 { margin-bottom: 5px } 
+        input { padding: 3px; }
+        .input-cell { display: table-cell }
+        .input-status { width: 30px; display: none; }
+        .button { padding-left: 10px; padding-right: 10px; }
+        .note { margin-bottom: 5px }
+        .reminder { 
+            padding: 10px; 
+            border: 1px solid #3c763d;
+            width: 388px; 
+            display: none;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            background-color: #dff0d8;
+            color: #3c763d;
+            font-size: 13px;
+        }
+    </style> 
+</head>
+<body style="margin:20px">
+    <h1>GitSense Configuration</h1>
+
+    <h3>GitSense API URL</h3>
+    <div class=input-cell>
+        <input id=gitsenseApiUrl-input type="text" style="width:400px">
+    </div>
+
+    <h3>Bitbucket API URL</h3>
+    <div class=input-cell>
+        <input id=bitbucketApiUrl-input type="text" style="width:400px">
+    </div>
+
+    <h3>GitHub API URL</h3>
+    <div class=input-cell>
+        <input id=githubApiUrl-input type="text" style="width:400px">
+    </div>
+
+    <h3>Bitbucket Access Token</h3>
+    <div class=input-cell>
+        <input id=bitbucketAccessToken-input type="text" style="width:400px">
+    </div>
+
+    <h3>GitHub Access Token</h3>
+    <div class=input-cell>
+        <input id=githubAccessToken-input type="text" style="width:400px">
+    </div>
+
+    <h3>GitSense Access Token</h3>
+    <div class=input-cell>
+        <input id=gitsenseAccessToken-input type="text" style="width:400px">
+    </div>
+
+    <br>
+    <div class=reminder>
+        <h3 style="margin-top:0px;">Update manifest.json file</h3>
+        If required, remember to update the <b>permissions</b> and <b>matches</b> value 
+        in the manifest.json file and to reload the extension.
+    </div>
+
+    <input class=button id=save-button type=button value="Save" disabled>
+    <span id=save-status style="margin-left:5px"></span>
+
+    <script src="js/arch.js"></script>
+    <script src="js/config.js"></script>
+    <script src="options.js"></script>
+</body>
+</html>

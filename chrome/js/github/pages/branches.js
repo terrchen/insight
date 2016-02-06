@@ -13,12 +13,13 @@ sdes.github.pages.branches = function(page) {
         varUtil  = new sdes.utils.variable(),
         bhdata   = new sdes.gitsense.data.branch.heads(host, page.owner, page.repo),
 
-        idPrefix            = "id"+CryptoJS.MD5(page.owner+":"+page.repo+":branches"),
-        chartsBodyId        = idPrefix+"-charts",
-        chartOptionsBodyId  = idPrefix+"-chart-options",
-        chartButtonsId      = idPrefix+"-chart-buttons",
-        navAndSearchBodyId  = idPrefix+"-nav-and-search",
-        searchResultsBodyId = idPrefix+"-search-results",
+        idPrefix                = "id"+CryptoJS.MD5(page.owner+":"+page.repo+":branches"),
+        chartsBodyId            = idPrefix+"-charts",
+        chartSettingsBodyId     = idPrefix+"-chart-settings",
+        chartTypesButtonsId     = idPrefix+"-chart-types-buttons",
+        chartDateRangeButtonsId = idPrefix+"-chart-groupings-buttons",
+        navAndSearchBodyId      = idPrefix+"-nav-and-search",
+        searchResultsBodyId     = idPrefix+"-search-results",
         pageHeaderBody;
 
     this.render = function() {
@@ -32,7 +33,7 @@ sdes.github.pages.branches = function(page) {
         function destroyExistingElements() {
             var ids = [
                 chartsBodyId,
-                chartOptionsBodyId,
+                chartSettingsBodyId,
                 navAndSearchBodyId,
                 searchResultsBodyId
             ],
@@ -81,18 +82,22 @@ sdes.github.pages.branches = function(page) {
     }
 
     function render(branchToHead) {
-        var branchToChartsData = {},
-            branchToPoints     = {},
-            branchToCommitIds  = {},
-            commitIdToCommit   = {},
-            commitIdToBranches = {},
-            selectedBranches   = [],
-            isSelected         = {},
-            commitsLayout      = "row",
-            selectedChartType  = "commits",
-            branchGroupsBody,
+        var branchToRangeToTypeToData      = {},
+            branchToRangeToTypeToRawPoints = {},
+            branchToSearchToCommitIds      = {},
+            rangeToTypeToBranchesToMinMaxY = {},
+            commitIdToCommit               = {},
+            commitIdToBranches             = {},
+            selectedBranches               = [],
+            isSelected                     = {},
+            commitsLayout                  = "row",
+            selectedChartType              = "commits",
+            selectedChartRange             = "1month",
+            branchGroupsBody     = document.getElementsByClassName("branch-groups")[0],
+            branchesViewSwitcher = document.getElementsByClassName("branches-view-switcher")[0],
+            branchSearchInput    = document.getElementsByClassName("branch-search")[0],
             chartsBody,
-            chartOptionsBody,
+            chartSettingsBody,
             navAndSearchBody,
             searchResultsBody,
             navigator,
@@ -107,26 +112,25 @@ sdes.github.pages.branches = function(page) {
         renderActionButtons();
 
         if ( varUtil.isNoU(page.searchArgs) ) {
-            renderChartButtons();
-            renderChart();
+            renderChartTypeButtons();
+            renderChartRangeButtons();
+            renderLineChart();
             return;
         }
 
-        branchGroupsBody = document.getElementsByClassName("branch-groups")[0];
-
         renderNavigator();
-        renderSearchInput();
-        renderSearchResults();
+        renderSearchInput(page.searchArgs);
+        renderSearchResults(page.searchArgs);
 
         function renderLayout() {
             chartsBody = document.getElementById(chartsBodyId);
-            chartOptionsBody = document.getElementById(chartOptionsBodyId);
+            chartSettingsBody = document.getElementById(chartSettingsBodyId);
 
             if ( chartsBody !== null )
                 chartsBody.parentNode.removeChild(chartsBody);
 
-            if ( chartOptionsBody !== null )
-                chartOptionsBody.parentNode.removeChild(chartOptionsBody);
+            if ( chartSettingsBody !== null )
+                chartSettingsBody.parentNode.removeChild(chartSettingsBody);
 
             chartsBody = htmlUtil.createDiv({
                     id: chartsBodyId,
@@ -140,8 +144,8 @@ sdes.github.pages.branches = function(page) {
                     }
                 });
 
-            chartOptionsBody = htmlUtil.createDiv({
-                    id: chartOptionsBodyId,
+            chartSettingsBody = htmlUtil.createDiv({
+                    id: chartSettingsBodyId,
                     style: {
                         width: "100%",
                         marginBottom: "10px",
@@ -156,7 +160,7 @@ sdes.github.pages.branches = function(page) {
                         width: "100%",
                         overflow: "hidden",
                         marginBottom: "20px",
-                        display: "hidden"
+                        display: "none"
                     }
                 });
     
@@ -170,19 +174,15 @@ sdes.github.pages.branches = function(page) {
                     }
                 });
 
-            pageHeaderBody.parentNode.insertBefore(chartOptionsBody, pageHeaderBody);
+            pageHeaderBody.parentNode.insertBefore(chartSettingsBody, pageHeaderBody);
             pageHeaderBody.parentNode.insertBefore(chartsBody, pageHeaderBody);
-
-            if ( varUtil.isNoU(page.searchArgs) )
-                return;
-
             pageHeaderBody.parentNode.insertBefore(navAndSearchBody, pageHeaderBody);
             pageHeaderBody.parentNode.insertBefore(searchResultsBody, pageHeaderBody);
         }
 
-        function renderChart(ready) {
-            if ( ready === undefined ) {
-                defineBranchToChartsData(renderChart);
+        function renderLineChart(ready) {
+            if ( ready === undefined && selectedBranches.length !== 0 ) {
+                defineChartData(renderLineChart);
                 return;
             }
 
@@ -193,6 +193,15 @@ sdes.github.pages.branches = function(page) {
 
             var branchToGroup = {},
                 branchToDays  = {},
+                range         = selectedChartRange,
+                type          = selectedChartType,
+                branches      = JSON.stringify(selectedBranches),
+                minMaxY       = rangeToTypeToBranchesToMinMaxY[range][type][branches],
+                minY          = minMaxY.min,
+                maxY          = minMaxY.max,
+                chartHeight   = $(chartsBody).height() - 60,
+                yRatio        = (maxY - minY)/chartHeight,
+                yOffset       = Math.floor(20 * yRatio),
                 chartsData,
                 branch,
                 group,
@@ -200,9 +209,12 @@ sdes.github.pages.branches = function(page) {
                 days,
                 i;
 
+            maxY += yOffset;
+            minY -= yOffset;
+
             for ( i = 0; i < selectedBranches.length; i++ ) {
                 branch     = selectedBranches[i];
-                chartsData = branchToChartsData[branch];
+                chartsData = branchToRangeToTypeToData[branch][range][type];
 
                 days = 
                     crossfilter(chartsData).dimension(
@@ -214,7 +226,7 @@ sdes.github.pages.branches = function(page) {
                 group = 
                     days.group().reduceSum(
                         function(d) {
-                            return d[selectedChartType];
+                            return d[type];
                         }
                     );
 
@@ -222,23 +234,41 @@ sdes.github.pages.branches = function(page) {
                 branchToDays[branch]  = days;
             }
 
-            branch = selectedBranches[0];
-            group  = branchToGroup[branch];
-            days   = branchToDays[branch];
+            branch     = selectedBranches[0];
+            group      = branchToGroup[branch];
+            days       = branchToDays[branch];
+            chartsData = branchToRangeToTypeToData[branch][range][type];
 
-            var chartsData = branchToChartsData[branch],
-                firstDay   = chartsData[0].day,
-                lastDay    = chartsData[chartsData.length - 1].day,
+            var grouping   = getGrouping(),
+                daysOffset = grouping === "monthly" || grouping === "weekly" ? 15 : 1,
+
+                firstDay = 
+                    d3.time.day(
+                        d3.time.day.offset(chartsData[0].day, -daysOffset)
+                    ),
+
+                lastDay = 
+                    d3.time.day(
+                        d3.time.day.offset(chartsData[chartsData.length - 1].day, daysOffset)
+                    ),
+
                 lineChart  = dc.compositeChart(chartsBody),
                 lineCharts = [],
-                colors     = d3.scale.category10();
+                colors     = d3.scale.category10(),
+                left       = type === "codechurn" || type === "loc" ? 70 : 50;
 
             lineChart.width( $(chartsBody).width() )
                 .height( $(chartsBody).height() )
-                .margins({ top: 20, bottom: 30, left: 50, right: 20})
+                .margins({ 
+                    top: 20, 
+                    bottom: 35, 
+                    left: left,
+                    right: 20
+                })
                 .dimension(days)
                 .valueAccessor(function(d){ return d.value; })
                 .brushOn(false)
+                .y(d3.scale.linear().domain([minY, maxY]))
                 .x(d3.time.scale().domain([firstDay, lastDay]))
                 .xUnits(d3.time.days)
                 .renderHorizontalGridLines(true)
@@ -246,6 +276,7 @@ sdes.github.pages.branches = function(page) {
 
             for ( i = 0; i < selectedBranches.length; i++ ) {
                 branch = selectedBranches[i];
+
                 lineCharts.push(
                     dc.lineChart(lineChart)
                         .group(branchToGroup[branch])
@@ -256,44 +287,41 @@ sdes.github.pages.branches = function(page) {
             lineChart.compose(lineCharts);
 
             dc.renderAll();
-        }
 
-        function renderCodeChurnChart(ready) {
-            if ( ready === undefined ) {
-                defineBranchToChartsData(renderCodeChurnChart);
-                return;
-            }
+            lineChart.selectAll(".dot")
+                .style("cursor", "pointer")
+                .on(
+                    "click", 
+                    function(e,x) {
+                        var grouping = getGrouping(),
+                            date     = getDateLabel(grouping, e.data.key),
+                            args     = [];
 
-            var series = [],
-                i,
-                branch;
+                        switch(grouping) {
+                            case "daily":
+                                args.push("day:"+date);
+                                break;
+                            case "weekly":
+                                args.push("week:"+date);
+                                break;
+                            case "monthly":
+                                args.push("month:"+date);
+                                break;
+                            default:
+                                throw("GitSense: Unrecognized date grouping '"+grouping+"'");
+                        }
 
-            for ( i = 0; i < selectedBranches.length; i++ ) {
-                branch = selectedBranches[i];
+                        renderChartRangeButtons(range, true);
+                        renderChartTypeButtons(type, true);
 
-                series.push({
-                    type: "line",
-                    name: branch,
-                    data: branchToChartsData[branch].churn.loc.total
-                });
-            }
+                        $(branchGroupsBody).hide();
 
-            $(chartsBody).highcharts("StockChart", {
-                chart: {
-                    alignTicks: false
-                },
-
-                rangeSelector: {
-                    selected: 1,
-                    inputEnabled: false
-                },
-
-                navigator: {
-                    enabled: false
-                },
-
-                series: series
-            });
+                        renderNavigator("search", true);
+                        renderSearchInput(args);
+                        renderSearchResults(args);
+                        $(searchResultsBody).show();
+                    }
+                );
         }
 
         function renderActionButtons() {
@@ -359,10 +387,25 @@ sdes.github.pages.branches = function(page) {
                     }
 
                     if ( varUtil.isNoU(page.searchArgs) ) {
-                        renderChart();
-                        renderChartButtons();
+                        if ( selectedChartType === "commits" )
+                            renderLineChart();
+                        else if ( selectedChartType === "codechurn" )
+                            renderLineChart();
+                        else if ( selectedChartType === "loc" )
+                            renderLineChart();
+                        else if ( selectedChartType === "unique" )
+                            reset();
+                        else
+                            throw("GitSense: Unrecognized chart type '"+selectedChartType+"'");
+                            
+                        renderChartTypeButtons();
                     } else {
-                        renderSearchResults();
+                        renderSearchResults(page.searchArgs);
+                    }
+
+                    function reset() {
+                        selectedChartType = "commits";
+                        renderLineChart();
                     }
                 }
 
@@ -385,14 +428,12 @@ sdes.github.pages.branches = function(page) {
             }
         }
 
-        function renderNavigator(select) {
-            var elems = document.getElementsByClassName("js-branches-subnav");
+        function renderNavigator(select, hideSelectBranches) {
+            if ( varUtil.isNoU(hideSelectBranches) )
+                hideSelectBranches = false;
 
-            if ( elems === undefined )
-                throw("GitSense: We can't find the object with the class 'js-branches-subnav'");
-
-            $(elems[0]).hide();
-
+            $(branchesViewSwitcher).hide();
+            $(branchSearchInput).hide();
             $(navAndSearchBody).show();
 
             var navBuilder = new sdes.github.ui.subnav(),
@@ -422,7 +463,7 @@ sdes.github.pages.branches = function(page) {
                     html: type.html,
                     selected: select === type.id ? true : null,
                     onclick: select === type.id ? null : clicked,
-                    show: true
+                    show: type.id === "branches" && hideSelectBranches ? false : true
                 });
             }
     
@@ -451,10 +492,86 @@ sdes.github.pages.branches = function(page) {
             }
         }
 
-        function renderChartButtons(select) {
-            var types  = [ { id: "commits", label: "Commits" } ], 
-                btngrp = new sdes.github.ui.btngrp({ align: "right" }),
-                showCodeChurn = true,
+        function renderChartRangeButtons(select, disableAllExceptSelected) {
+            if ( varUtil.isNoU(disableAllExceptSelected) )
+                disableAllExceptSelected = false;
+ 
+            var types = [
+                    { id: "2weeks", label: "2 weeks" },
+                    { id: "1month", label: "1 month" },
+                    { id: "3months", label: "3 months" },
+                    { id: "1year", label: "1 year" },
+                    { id: "5years", label: "5 years" }
+                ], 
+                btngrp = new sdes.github.ui.btngrp({ align: "left" }),
+                selected,
+                type,
+                i;
+
+            if ( varUtil.isNoU(select) ) 
+                select = selectedChartRange;
+
+            selectedChartRange = select;
+
+            for ( i = 0; i < types.length; i++ ) {
+                type = types[i];
+
+                selected = type.id === select ? true : false;
+
+                btngrp.add({
+                    id: type.id,
+                    label: type.label,
+                    selected: selected,
+                    disabled: selected || ! disableAllExceptSelected ? false : true,
+                    onclick: selected || disableAllExceptSelected ? null : clickedBtn
+                });
+            }
+
+            var btns = document.getElementById(chartDateRangeButtonsId);
+
+            if ( btns !== null )
+                btns.parentNode.removeChild(btns);
+
+            btns = btngrp.build();
+
+            btns.id = chartDateRangeButtonsId;
+
+            chartSettingsBody.appendChild(btns);
+
+            function clickedBtn(btn) {
+                btns.parentNode.removeChild(btns);
+                renderChartRangeButtons(btn.id);
+
+                switch(selectedChartType) {
+                    case "commits":
+                        renderLineChart();
+                        break;
+                    case "loc":
+                        renderLineChart();
+                        break;
+                    case "codechurn":
+                        renderLineChart();
+                        break;
+                    case "unique":
+                        selectedChartType = "commits";
+                        renderChartTypeButtons();
+                        renderLineChart();
+                        break;
+                    default:
+                        throw("GitSense: Unrecognized chart type '"+selectedChartType+"'");
+                }
+            }
+        }
+
+        function renderChartTypeButtons(select, disableAllExceptSelected) {
+            if ( varUtil.isNoU(disableAllExceptSelected) )
+                disableAllExceptSelected = false;
+ 
+            var types         = [ { id: "commits", label: "Commits"} ],
+                btngrp        = new sdes.github.ui.btngrp({ align: "right" }),
+                showLoCs      = selectedBranches.length === 0 ? false : true,
+                showCodeChurn = selectedBranches.length === 0 ? false : true,
+                selected, 
                 head,
                 type,
                 i;
@@ -462,15 +579,31 @@ sdes.github.pages.branches = function(page) {
             for ( i = 0; i < selectedBranches.length; i++ ) {
                 head = branchToHead[selectedBranches[i]];
 
-                if ( head.indexedCodeChurn )
+                if ( head.builtCodeChurn )
                     continue;
 
                 showCodeChurn = false;
                 break;
             }
 
+            for ( i = 0; i < selectedBranches.length; i++ ) {
+                head = branchToHead[selectedBranches[i]];
+
+                if ( head.builtLoCs )
+                    continue;
+
+                showLoCs = false;
+                break;
+            }
+
+            if ( selectedBranches.length == 2 )
+                types.push({ id: "unique", label: "Unique"});
+
+            if ( showLoCs )
+                types.push({id: "loc", label: "Lines of Code"});
+
             if ( showCodeChurn )
-                types.push({ id: "codechurn", label: "Code Churn" });
+                types.push({id: "codechurn", label: "Code Churn"});
 
             if ( varUtil.isNoU(select) ) 
                 select = selectedChartType;
@@ -478,62 +611,93 @@ sdes.github.pages.branches = function(page) {
             selectedChartType = select;
 
             for ( i = 0; i < types.length; i++ ) {
-                type = types[i];
+                type     = types[i];
+                selected = type.id === select ? true : false;
 
                 btngrp.add({
                     id: type.id,
                     label: type.label,
                     selected: type.id === select ? true : null,
-                    onclick: type.id === select ? null : clickedBtn
+                    selected: selected,
+                    disabled: selected || ! disableAllExceptSelected ? false : true,
+                    onclick: selected || disableAllExceptSelected ? null : clickedBtn
                 });
             }
 
-            var btns = document.getElementById(chartButtonsId);
+            var btns = document.getElementById(chartTypesButtonsId);
 
             if ( btns !== null )
                 btns.parentNode.removeChild(btns);
 
             btns = btngrp.build();
 
-            btns.id = chartButtonsId;
+            btns.id = chartTypesButtonsId;
 
-            chartOptionsBody.appendChild(btns);
+            chartSettingsBody.appendChild(btns);
 
             function clickedBtn(btn) {
                 btns.parentNode.removeChild(btns);
 
-                renderChartButtons(btn.id);
+                renderChartTypeButtons(btn.id);
 
-                if ( btn.id === "commits" )
-                    renderChart();
+                if ( btn.id === "commits" || btn.id === "unique")
+                    renderLineChart();
                 else if ( btn.id === "codechurn" )
-                    renderChart();
+                    renderLineChart();
+                else if ( btn.id === "loc" )
+                    renderLineChart();
                 else
                     throw("GitSense Error: Unrecognized button id '"+btn.id+"'");
             }
         }
 
-        function renderSearchInput() {
+        function renderSearchInput(args) {
+            if ( args === undefined )
+                args = [];
+
+            if ( ! varUtil.isNoU(searchInput) )
+                searchInput.parentNode.removeChild(searchInput);
+
             var inputBuilder = 
                     new sdes.github.ui.input.search({
                         align: "right",
-                        value: page.searchArgs.join(" "),
+                        value: args.join(" "),
                         disable: true,
                         icon: "octicon-x",
                         onenter: clicked
-                    }),
-                search = inputBuilder.build();
+                    });
+
+            searchInput = inputBuilder.build();
     
-            navAndSearchBody.appendChild(search);
+            navAndSearchBody.appendChild(searchInput);
 
             function clicked() {
-                window.location.href = window.location.href.split(/\?/)[0];
+                if ( ! varUtil.isNoU(page.searchArgs) ) {
+                    window.location.href = window.location.href.split(/\?/)[0];
+                    return;
+                }
+
+                searchInput.parentNode.removeChild(searchInput);
+
+                searchInput = null;
+
+                $(searchResultsBody).html("");
+
+                renderChartRangeButtons(selectedChartRange);
+                renderChartTypeButtons(selectedChartType);
+ 
+                $(navAndSearchBody).hide();
+                $(searchResultsBody).hide();
+
+                $(branchesViewSwitcher).show();
+                $(branchSearchInput).show();
+                $(branchGroupsBody).show();
             }
         }
 
-        function renderSearchResults(commitTimeToCommitIds, commitIdToBranches) {
+        function renderSearchResults(args, commitTimeToCommitIds, commitIdToBranches) {
             if ( commitIdToBranches === undefined ) {
-                mapCommitIds(renderSearchResults);
+                mapCommitIds(args, renderSearchResults);
                 return;
             }
 
@@ -580,7 +744,6 @@ sdes.github.pages.branches = function(page) {
                 timesPerPage    = 30,
                 selectedTab     = "commits",
                 renderToWidth   = Math.floor(100/selectedBranches.length)+"%",
-                searchArgs,
                 branch,
                 renderToShell,
                 renderTo,
@@ -664,7 +827,7 @@ sdes.github.pages.branches = function(page) {
 
                 $(tabBuilder.getRightTab()).html(
                     "<span style='color:#999'>"+
-                        "Merge commits with no changes are not shown"+
+                        "Empty merge commits excluded"+
                     "</span>"
                 );
 
@@ -740,7 +903,6 @@ sdes.github.pages.branches = function(page) {
                                     "style='margin-right:5px;'></span>"+
                                 "<span style='font-weight:bold'>"+
                                     branch+
-                                    //getBranchesHtml(branches, onBranch)+
                                 "</span>",
                             opacity: opacity,
                             titleStyle: {
@@ -757,25 +919,11 @@ sdes.github.pages.branches = function(page) {
                     );
                 }
 
-                function getBranchesHtml(branches, onBranch) {
-                    if ( selectedBranches.length === 1 )
-                        return branches[0];
+                if ( more )
+                    renderPagination();
+                else
+                    $(matchingCommitsBodyPagination).html("");
 
-                    var i,
-                        branch;
-
-                    for ( i = 0; i < selectedBranches.length; i++ ) {
-                        branch = selectedBranches[i];
-
-                        if ( selected[branch] )
-                            temp.push(branch);
-                        else
-                            temp.push("<strike>"+branch+"</strike>");
-                    }
-
-                    return temp.join(", &nbsp;");
-                }
-    
                 function renderPagination() {
                     var pagination = matchingCommitsBodyPagination;
 
@@ -793,8 +941,11 @@ sdes.github.pages.branches = function(page) {
                     );
 
                     pagination.onclick = function() {
-                        // Fixme: Need to implement this
-                        console.log("GitSense: Yeah we still need to implement this");
+                        for ( var i = 0; i < selectedBranches.length; i++ ) {
+                            var branch = selectedBranches[i];
+
+                            renderCommits(branch, (page+1) );
+                        }
                     }
                 }
             }
@@ -862,18 +1013,25 @@ sdes.github.pages.branches = function(page) {
             console.log("GitSense: Still need to implement this");
         }
 
-        function defineBranchToChartsData(callback) {
+        function defineChartData(callback) {
             var ready         = true,
+                range         = selectedChartRange,
+                type          = selectedChartType,
                 stopWaitingAt = new Date().getTime() + 1000 * 10,
                 stopWaiting   = false,
                 branch,
                 i;
-
+    
             for ( i = 0; i < selectedBranches.length; i++ ) {
                 branch = selectedBranches[i];
 
-                if ( branchToChartsData[branch] !== undefined )
+                if (
+                    branchToRangeToTypeToData[branch] !== undefined &&
+                    branchToRangeToTypeToData[branch][range] !== undefined &&
+                    branchToRangeToTypeToData[branch][range][type] !== undefined 
+                ) {
                     continue;
+                }
 
                 ready = false;
             
@@ -881,7 +1039,7 @@ sdes.github.pages.branches = function(page) {
             }
 
             if ( ready ) {
-                callback(true);
+                processRawPoints();
                 return;
             }
 
@@ -901,22 +1059,27 @@ sdes.github.pages.branches = function(page) {
                 if ( stopWaiting )
                     return;
 
-                var readyToProcessPoints = true,
-                    i, 
-                    branch;
+                var readyToProcessRawPoints = true,
+                    branch,
+                    i;
 
                 for ( i = 0; i < selectedBranches.length; i++ ) {
                     branch = selectedBranches[i];
-
-                    if ( branchToPoints[branch] !== undefined )
+                    
+                    if ( 
+                        branchToRangeToTypeToRawPoints[branch] !== undefined &&
+                        branchToRangeToTypeToRawPoints[branch][range] !== undefined &&
+                        branchToRangeToTypeToRawPoints[branch][range][type] !== undefined
+                    ) {
                         continue;
+                    }
 
-                    readyToProcessPoints = false;
+                    readyToProcessRawPoints = false;
                     break;
                 }
 
-                if ( readyToProcessPoints )
-                    processPoints();
+                if ( readyToProcessRawPoints )
+                    processRawPoints();
                 else if ( new Date().getTime() < stopWaitingAt )
                     setTimeout(wait, 100);
                 else
@@ -930,70 +1093,196 @@ sdes.github.pages.branches = function(page) {
                     throw("GitSense: No branch head information for the branch "+branch);
 
                 var bhdata =  
-                    new sdes.gitsense.data.branch.heads(
-                        host, 
-                        page.owner, 
-                        page.repo, 
-                        branch
-                    );
+                        new sdes.gitsense.data.branch.heads(
+                            host, 
+                            page.owner, 
+                            page.repo, 
+                            branch
+                        );
 
-                if ( head.indexedCodeChurn ) {
-                    bhdata.getCodeChurnPoints(
-                        head.sha,
-                        function(points, error) {
-                            if ( error !== undefined ) {
-                                stopWaiting = true;
-                                throw(error);
-                            }
+                switch(type) {
+                    case "commits":
+                        bhdata.getCommitPoints({
+                            head: head.sha,
+                            grouping: getGrouping(),
+                            maxPoints: getMaxPoints(),
+                            callback: function(points, error) {
+                                if ( error !== undefined ) {
+                                    stopWaiting = true;
 
-                            branchToPoints[branch] = points;
-                        },
-                        page.searchArgs,
-                        96
-                    );
-                } else {
-                    bhdata.getCommitPoints(
-                        head.sha,
-                        function(points, error) {
-                            if ( error !== undefined ) {
-                                stopWaiting = true;
+                                    if ( error.responseText.match(/No index information/) ) {
+                                        renderNoIndexedHead(branch);
+                                        return;
+                                    }
 
-                                if ( error.responseText.match(/No index information/) ) {
-                                    renderNoIndexedHead(branch);
-                                    return;
+                                    throw(error);
                                 }
 
-                                throw(error);
-                            }
+                                if ( branchToRangeToTypeToRawPoints[branch] === undefined )
+                                    branchToRangeToTypeToRawPoints[branch] = {};
+    
+                                var rangeToTypeToRawPoints = branchToRangeToTypeToRawPoints[branch];
 
-                            branchToPoints[branch] = points;
-                        },
-                        page.searchArgs,
-                        96
-                    );
+                                if ( rangeToTypeToRawPoints[range] === undefined )
+                                    rangeToTypeToRawPoints[range] = {};
+
+                                var typeToRawPoints = rangeToTypeToRawPoints[range];
+
+                                if ( typeToRawPoints === undefined )
+                                    typeToRawPoints = {};
+
+                                typeToRawPoints[type] = points;
+                            }
+                        });
+
+                        break;
+                    case "codechurn":
+                        bhdata.getCodeChurnPoints({
+                            head: head.sha,
+                            grouping: getGrouping(),
+                            maxPoints: getMaxPoints(),
+                            callback: function(points, error) {
+                                if ( error !== undefined ) {
+                                    stopWaiting = true;
+
+                                    if ( error.responseText.match(/No index information/) ) {
+                                        renderNoIndexedHead(branch);
+                                        return;
+                                    }
+
+                                    throw(error);
+                                }
+
+                                if ( branchToRangeToTypeToRawPoints[branch] === undefined )
+                                    branchToRangeToTypeToRawPoints[branch] = {};
+    
+                                var rangeToTypeToRawPoints = branchToRangeToTypeToRawPoints[branch];
+
+                                if ( rangeToTypeToRawPoints[range] === undefined )
+                                    rangeToTypeToRawPoints[range] = {};
+
+                                var typeToRawPoints = rangeToTypeToRawPoints[range];
+
+                                if ( typeToRawPoints === undefined )
+                                    typeToRawPoints = {};
+
+                                typeToRawPoints[type] = points;
+                            }
+                        });
+
+                        break;
+                    case "loc":
+                        bhdata.getLoCPoints({
+                            head: head.sha,
+                            grouping: getGrouping(),
+                            maxPoints: getMaxPoints(),
+                            callback: function(points, error) {
+                                if ( error !== undefined ) {
+                                    stopWaiting = true;
+
+                                    if ( error.responseText.match(/No index information/) ) {
+                                        renderNoIndexedHead(branch);
+                                        return;
+                                    }
+
+                                    throw(error);
+                                }
+
+                                if ( branchToRangeToTypeToRawPoints[branch] === undefined )
+                                    branchToRangeToTypeToRawPoints[branch] = {};
+    
+                                var rangeToTypeToRawPoints = branchToRangeToTypeToRawPoints[branch];
+
+                                if ( rangeToTypeToRawPoints[range] === undefined )
+                                    rangeToTypeToRawPoints[range] = {};
+
+                                var typeToRawPoints = rangeToTypeToRawPoints[range];
+
+                                if ( typeToRawPoints === undefined )
+                                    typeToRawPoints = {};
+
+                                typeToRawPoints[type] = points;
+                            }
+                        });
+
+                        break;
+                    case "unique":
+                        var otherHead =
+                                selectedBranches[0] === branch ?
+                                    branchToHead[selectedBranches[1]] :
+                                    branchToHead[selectedBranches[0]];
+
+                        bhdata.getCommitPoints({
+                            head: head.sha,
+                            grouping: getGrouping(),
+                            maxPoints: getMaxPoints(),
+                            notIn: otherHead.sha,
+                            callback: function(points, error) {
+                                if ( error !== undefined ) {
+                                    stopWaiting = true;
+
+                                    if ( error.responseText.match(/No index information/) ) {
+                                        renderNoIndexedHead(branch);
+                                        return;
+                                    }
+
+                                    throw(error);
+                                }
+
+                                if ( branchToRangeToTypeToRawPoints[branch] === undefined )
+                                    branchToRangeToTypeToRawPoints[branch] = {};
+    
+                                var rangeToTypeToRawPoints = branchToRangeToTypeToRawPoints[branch];
+
+                                if ( rangeToTypeToRawPoints[range] === undefined )
+                                    rangeToTypeToRawPoints[range] = {};
+
+                                var typeToRawPoints = rangeToTypeToRawPoints[range];
+
+                                if ( typeToRawPoints === undefined )
+                                    typeToRawPoints = {};
+
+                                typeToRawPoints[type] = points;
+                            }
+                        });
+
+                        break;                           
+                    default:
+                        throw("GitSense: Unrecognized chart type '"+type+"'");
                 }
             }
 
-            function processPoints() {
-                var branchToYmdToPoint = {},
-                    today = dateUtil.timeToYearMonthDay(null, true),
+            function processRawPoints() {
+                var format = getDateFormat(),
+                    type   = selectedChartType,
+                    range  = selectedChartRange,
                     minDate,
+                    maxDate,
                     date,
                     branch,
                     points,
                     i;
 
+                // Iterate through all the selected branches to find
+                // the min and max date.  Since the GitSense returns the 
+                // points in chronological order, we just need to look
+                // at the first and last array element
                 for ( i = 0; i < selectedBranches.length; i++ ) {
                     branch = selectedBranches[i];
-                    points = branchToPoints[branch];
+                    points = branchToRangeToTypeToRawPoints[branch][range][type];
 
-                    branchToYmdToPoint[branch] = mapBranchPoints(branchToPoints[branch]);
-                    branchToChartsData[branch] = [];
+                    if ( points === undefined || points.length === 0 )
+                        continue;  
 
-                    if ( points.length === 0 )
-                        continue;
+                    // The d3 format.parse function will return a date object
+                    date = format.parse(points[0].label);
 
-                    date = new Date(points[0].label);
+                    if ( maxDate === undefined )
+                        maxDate = date;
+                    else if ( date.getTime() > maxDate.getTime() )
+                        maxDate = date;
+
+                    date = format.parse(points[ points.length - 1 ].label);
 
                     if ( minDate === undefined )
                         minDate = date;
@@ -1001,116 +1290,323 @@ sdes.github.pages.branches = function(page) {
                         minDate = date;
                 }
 
-                // Fixme: We shouln't even be here if minDate is undefined
-                if ( minDate === undefined )
+                if ( varUtil.isNoU(minDate) ) {
+                    $(chartsBody).html(
+                        "<table style='width:100%;height:100%'>"+
+                            "<tr>"+
+                                "<td style='width:100%;text-align:center;'>"+
+                                    "No activity for this date range"+
+                                "</td>"+
+                            "</tr>"+
+                        "</table>"
+                    );
+
+                    // No points were found
                     return;
+                }
 
                 // Make sure min date is not in the future.  With Git, you can set the
-                // time to anything and it's just going to cause havoc with the while
-                // loop below.
-                if ( minDate.getTime() > new Date(today).getTime() )
-                    throw("GitSense Error: The earliest commit date is greater than today");
+                // time to anything and it's just going to cause havoc if we need to 
+                // padd the days
+                if ( minDate.getTime() > new Date().getTime() )
+                    throw("GitSense: The earliest date is greater than now");
 
-                var loops = 0,
-                    maxLoops = 100000,
-                    format   = d3.time.format("%Y-%m-%d"),
+                // Initialize the has
+                var branchToLabelToPoint = {},
+                    labelToPoint,
+                    point,
+                    j;
+
+                for ( i = 0; i < selectedBranches.length; i++ ) {
+                    branch = selectedBranches[i];
+                    points = branchToRangeToTypeToRawPoints[branch][range][type];
+
+                    labelToPoint = {};
+
+                    for ( j = 0; j < points.length; j++ ) {
+                        point = points[j];
+                        labelToPoint[point.label] = point;
+                    }
+
+                    branchToLabelToPoint[branch] = labelToPoint;
+
+                    branchToRangeToTypeToData[branch] = {};
+                    branchToRangeToTypeToData[branch][range] = {};
+                    branchToRangeToTypeToData[branch][range][type] = [];
+                }
+
+                var branchToLast = {},
+                    grouping     = getGrouping(),
+                    stopAt       = getDateLabel(grouping, maxDate),
+                    maxLoops     = 5 * 365,
+                    loop         = 0,
+                    minY,
+                    maxY,
+                    dateLabel,
                     data,
                     point,
                     churn,
-                    time,
-                    year,
-                    month,
-                    day,
-                    ymd,
-                    ymdToPoint;
+                    codechurn,
+                    loc,
+                    unique,
+                    commits;
 
-                while ( true && loops < maxLoops ) {
-                    year  = minDate.getFullYear();
-                    month = minDate.getMonth()+1;
-                    day   = minDate.getDate();
-                    time  = minDate.getTime();
-
-                    if ( day < 10 ) day = "0"+day;
-
-                    if ( month < 10 ) month = "0"+month;
-
-                    ymd = year+"-"+month+"-"+day;
+                while ( loop < maxLoops ) {
+                    dateLabel = getDateLabel(grouping, minDate);
 
                     for ( i = 0; i < selectedBranches.length; i++ ) {
-                        branch     = selectedBranches[i];
-                        ymdToPoint = branchToYmdToPoint[branch];
-                        point      = ymdToPoint[ymd] === undefined ? getEmptyPoint() : ymdToPoint[ymd];
-                        data       = branchToChartsData[branch];
-                        churn      = branchToChartsData[branch].churn;
+                        branch = selectedBranches[i];
+                        point  = branchToLabelToPoint[branch][dateLabel];
+                        data   = branchToRangeToTypeToData[branch][range][type];
+
+                        churn = {
+                            loc: { total: 0, add: 0, chg: 0, del: 0 },
+                            sloc: { total: 0, add: 0, chg: 0, del: 0 }
+                        }
+
+                        if ( point === undefined ) {
+                            commits   = 0;
+                            unique    = 0;
+                            loc       = branchToLast[branch] === undefined ? 0 : branchToLast[branch].loc;
+                            codechurn = 0;
+                        } else {
+                            commits = point.commits;
+                            unique  = point.commits;
+                            loc     = point.loc;
+
+                            if ( point.churn !== undefined ) {
+                                codechurn = point.churn.loc.total;
+                                churn     = point.churn;
+                            }
+
+                            branchToLast[branch] = {
+                                commits: commits,
+                                unique: unique,
+                                loc: loc,
+                                codechurn: codechurn,
+                                churn: churn
+                            };
+                        }
+
+                        switch(type) {
+                            case "commits":
+                                if ( minY === undefined || commits < minY ) 
+                                    minY = commits;
+
+                                if ( maxY === undefined || commits > maxY ) 
+                                    maxY = commits;
+
+                                break; 
+                            case "codechurn":
+                                if ( minY === undefined || churn.loc.total < minY ) 
+                                    minY = churn.loc.total;
+
+                                if ( maxY === undefined || churn.loc.total > maxY ) 
+                                    maxY = churn.loc.total;
+
+                                break;
+                            case "loc":
+                                if ( minY === undefined || loc < minY ) 
+                                    minY = loc;
+
+                                if ( maxY === undefined || loc > maxY ) 
+                                    maxY = loc;
+
+                                break;
+                            case "unique":
+                                if ( minY === undefined || commits < minY ) 
+                                    minY = commits;
+
+                                if ( maxY === undefined || commits > maxY ) 
+                                    maxY = commits;
+
+                                break; 
+                            default:
+                                throw("GitSense: Unrecognized chart type '"+type+"'");
+                        }
 
                         data.push({ 
-                            label: ymd,
-                            day: d3.time.day(format.parse(ymd)),
-                            week: d3.time.week(format.parse(ymd)),
-                            month: d3.time.month(format.parse(ymd)),
-                            commits: point.commits,
-                            codechurn: point.churn === undefined ? 0 : point.churn.loc.total
+                            label: dateLabel,
+                            day: d3.time.day(format.parse(dateLabel)),
+                            week: d3.time.week(format.parse(dateLabel)),
+                            month: d3.time.month(format.parse(dateLabel)),
+                            commits: commits,
+                            codechurn: codechurn,
+                            churn: churn,
+                            loc: loc,
+                            unique: unique
                         });
                     }
 
-                    if ( ymd === today )
+                    if ( dateLabel === stopAt )
                         break;
 
-                    minDate = dateUtil.addDaysToDate(minDate, 1);
+                    if ( grouping === "daily" )
+                        minDate = d3.time.day.offset(minDate,1);
+                    else if ( grouping === "weekly" )
+                        minDate = d3.time.week.offset(minDate,1);
+                    else if ( grouping === "monthly" )
+                        minDate = d3.time.month.offset(minDate,1);
 
-                    loops ++;
+                    loop++;
                 }
 
-                if ( loops === maxLoops )
-                    console.log("GitSense: Warning, exceeded max loops "+maxLoops);
+                // See if we need to padd any days. Basically, if the last point was over
+                // a year ago, we want to fill in the days from last year to now.  And the
+                // reason why we want to do this is want to make it very easily to see how
+                // active/inactive the branch is.
+                var nowDate  = new Date(),
+                    nowTime  = nowDate.getTime(),
+                    nowLabel = getDateLabel(grouping, nowDate),
+                    maxTime  = maxDate.getTime(),
+                    maxLabel = getDateLabel(grouping, maxDate);
+
+                if ( 
+                    type !== "loc" && 
+                    type !== "codechurn" && 
+                    maxLabel !== nowLabel && maxTime < nowTime 
+                ) {
+                    while ( maxLabel !== nowLabel )  {
+                        for ( i = 0; i < selectedBranches.length; i++ ) {
+                            branch = selectedBranches[i];
+                            point  = branchToLabelToPoint[branch][dateLabel];
+                            data   = branchToRangeToTypeToData[branch][range][type];
+
+                            data.push({ 
+                                label: maxLabel,
+                                day: d3.time.day(maxDate),
+                                week: d3.time.week(maxDate),
+                                month: d3.time.month(maxDate),
+                                commits: 0,
+                                codechurn: 0,
+                                churn: {
+                                    loc: { total: 0, add: 0, chg: 0, del: 0 },
+                                    sloc: { total: 0, add: 0, chg: 0, del: 0 }
+                                },
+                                loc: branchToLast[branch] === undefined ? 0 : branchToLast[branch].loc,
+                                unique: 0
+                            });
+                        }
+
+                        if ( grouping === "daily" )
+                            maxDate = d3.time.day.offset(maxDate,1);
+                        else if ( grouping === "weekly" )
+                            maxDate = d3.time.week.offset(maxDate,1);
+                        else if ( grouping === "monthly" )
+                            maxDate = d3.time.month.offset(maxDate,1);
+
+                        maxLabel = getDateLabel(grouping, maxDate);
+                        maxTime  = maxDate.getTime();
+                    }
+                }
+
+                var branches = JSON.stringify(selectedBranches);
+
+                if ( rangeToTypeToBranchesToMinMaxY[range] === undefined )
+                    rangeToTypeToBranchesToMinMaxY[range] = {};
+
+                if ( rangeToTypeToBranchesToMinMaxY[range][type] === undefined )
+                    rangeToTypeToBranchesToMinMaxY[range][type] = {};
+
+                rangeToTypeToBranchesToMinMaxY[range][type][branches] = { 
+                    min: minY, 
+                    max: maxY 
+                };
 
                 callback(true);
 
-                function mapBranchPoints(points) {
-                    var i,
-                        point,
-                        ymdToPoint = {};
-
-                    for ( i = 0; i < points.length; i++ ) {
-                        point = points[i];
-                        ymdToPoint[point.label] = point;
+                function getDateFormat() {
+                    switch(selectedChartRange) {
+                        case "2weeks":
+                            return d3.time.format("%Y-%m-%d");
+                        case "1month":
+                            return d3.time.format("%Y-%m-%d");
+                        case "3months":
+                            return d3.time.format("%Y-%m-%d");
+                        case "1year":
+                            return d3.time.format("%Y-w%W");
+                        case "5years":
+                            return d3.time.format("%Y-%m");
+                        default:
+                            throw("GitSense: Unrecognized date range '"+selectedChartRange+"'");
                     }
-
-                    return ymdToPoint;
                 }
 
-                function getEmptyPoint() {
-                    return {
-                        commits: 0,
-                        churn: {
-                            loc: {
-                                total: 0,
-                                add: 0,
-                                chg: 0,
-                                del: 0
-                            },
-                            sloc: {
-                                total: 0,
-                                add: 0,
-                                chg: 0,
-                                del: 0
-                            }
-                        }
-                    };
-                }
             }
         }
 
-        function mapCommitIds(callback) {
-            var i,
-                branch,
-                waitForCommitIds = false;
+        function getGrouping() {
+            switch(selectedChartRange) {
+                case "2weeks":
+                    return "daily";
+                case "1month":
+                    return "daily";
+                case "3months":
+                    return "daily";
+                case "1year":
+                    return "weekly";
+                case "5years":
+                    return "monthly";
+                default:
+                    throw("GitSense: Unrecognized date range '"+selectedChartRange+"'");
+            }
+        }
 
+        function getMaxPoints() {
+            switch(selectedChartRange) {
+                case "2weeks":
+                    return 14;
+                case "1month":
+                    return 30;
+                case "3months":
+                    return 90;
+                case "1year":
+                    return 52;
+                case "5years":
+                    return 60;
+                default:
+                    throw("GitSense: Unrecognized date range '"+selectedChartRange+"'");
+            }
+        }
+
+        function getDateLabel(grouping, date) {
+            var year  = date.getFullYear(),
+                month = date.getMonth()+1,
+                day   = date.getDate(),
+                week  = d3.time.weekOfYear(date);
+
+            if ( day < 10 ) day     = "0"+day;
+            if ( week < 10 ) week   = "0"+week;
+            if ( month < 10 ) month = "0"+month;
+
+            if ( grouping === "daily" )
+                return year+"-"+month+"-"+day;
+
+            if ( grouping === "weekly" )
+                return year+"-w"+week;
+
+            if ( grouping === "monthly" )
+                return year+"-"+month;
+
+            throw("GitSense: Unrecognized grouping '"+grouping+"'");
+        }
+
+        function mapCommitIds(args, callback) {
+            var waitForCommitIds = false,
+                branch,
+                search,
+                i;
+        
             for ( i = 0; i < selectedBranches.length; i++ ) {
                 branch = selectedBranches[i];
+                search = getSearchId(branch, args);
 
-                if ( branchToCommitIds[branch] !== undefined )
+                if ( 
+                    branchToSearchToCommitIds[branch] !== undefined &&
+                    branchToSearchToCommitIds[branch][search] !== undefined 
+                ) {
                     continue;
+                }
 
                 waitForCommitIds = true;
 
@@ -1128,15 +1624,21 @@ sdes.github.pages.branches = function(page) {
                 if ( new Date().getTime() > stopAt )
                     throw("GitSense: We've given up on waiting for the ordered commit ids");
 
-                var i,
+                var waitForCommitIds = false;
                     branch,
-                    waitForCommitIds = false;
+                    search,
+                    i;
 
                 for ( i = 0; i < selectedBranches.length; i++ ) {
                     branch = selectedBranches[i];
+                    search = getSearchId(branch, args);
 
-                    if ( branchToCommitIds[branch] !== undefined )
+                    if ( 
+                        branchToSearchToCommitIds[branch] !== undefined &&
+                        branchToSearchToCommitIds[branch][search] !== undefined
+                    ) {
                         continue;
+                    }
 
                     waitForCommitIds = true;
                     break; 
@@ -1154,6 +1656,15 @@ sdes.github.pages.branches = function(page) {
                 if ( head === undefined || ! head.indexed )
                     throw("GitSense: Unable to find an indexed branch head for "+branch);
 
+                var searchArgs = args;
+
+                if ( selectedChartType === "unique" ) {
+                    searchArgs = $.extend(true, [], args);
+                    searchArgs.push(getNotIn());
+                }
+
+                var search = getSearchId(branch, args);
+
                 new sdes.gitsense.data.branch.heads(
                     host,
                     page.owner,
@@ -1162,14 +1673,24 @@ sdes.github.pages.branches = function(page) {
                 ).getOrderedCommitIds(
                     head.sha,
                     processResults,
-                    page.searchArgs
+                    searchArgs
                 );
 
                 function processResults(ids, error) {
                     if ( error !== undefined )
                         throw(error);
 
-                    branchToCommitIds[branch] = ids;
+                    if ( branchToSearchToCommitIds[branch] === undefined )
+                        branchToSearchToCommitIds[branch] = {};
+
+                    branchToSearchToCommitIds[branch][search] = ids;
+                }
+
+                function getNotIn() {
+                    if ( branch === selectedBranches[0] )
+                        return "notin:"+branchToHead[selectedBranches[1]].sha;
+                    else
+                        return "notin:"+branchToHead[selectedBranches[0]].sha;
                 }
             }
 
@@ -1177,6 +1698,7 @@ sdes.github.pages.branches = function(page) {
                 var commitTimeToCommitIds = {},
                     commitIdToBranches    = {},
                     branch,
+                    search,
                     time,
                     entries,
                     ids,
@@ -1187,7 +1709,8 @@ sdes.github.pages.branches = function(page) {
    
                 for ( i = 0; i < selectedBranches.length; i++ ) { 
                     branch  = selectedBranches[i];
-                    entries = branchToCommitIds[branch];
+                    search  = getSearchId(branch, args);
+                    entries = branchToSearchToCommitIds[branch][search];
 
                     for ( j = 0; j < entries.length; j++ ) {
                         id   = entries[j][0];
@@ -1216,8 +1739,12 @@ sdes.github.pages.branches = function(page) {
                     }
                 }
         
-                callback(commitTimeToCommitIds, commitIdToBranches);
+                callback(args, commitTimeToCommitIds, commitIdToBranches);
             }
+        }
+
+        function getSearchId(branch, args) {
+            return branchToHead[branch].sha+":"+JSON.stringify(args)+":"+selectedChartType;
         }
     }
 }
