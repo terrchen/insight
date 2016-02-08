@@ -1,7 +1,7 @@
 "use strict";
 
-// The DOMContentLoaded event that is defined at the bottom of this script will 
-// trigger this load function.
+// The DOMContentLoaded event is defined at the bottom of this script and is what
+// triggers this function.
 function load() {
     // Get the locally stored settings.  If nothing is stored
     // locally, the current values that are defined by sdes.config

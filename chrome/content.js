@@ -74,7 +74,8 @@ initGitSenseConfig(function() {
     // Start tracking and pass it a true value to force an immediate callback
     gitsensePageEvent.startTracking(true);
 
-    // Catch the window resize event.
+    // Catch the window resize event.  This is only really needed for Bitbucket
+    // and it's used to let us know we need to redraw the chart.  
     window.addEventListener(
         "resize", 
         function() {
