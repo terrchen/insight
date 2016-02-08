@@ -8,6 +8,15 @@
 // to follow. And as you can probably guess, the nesting levels, also represents
 // directory levels in most cases.
 var sdes = {
+    bitbucket: {
+        comp: {},
+        data: {},
+        pages: {},
+        ui: {
+            input: {}
+        },
+        utils: {}
+    },
     cache: {
         gitsense: { 
             data: {
@@ -20,13 +29,6 @@ var sdes = {
             }
         }
     },
-    config: {
-        githubApiUrl: "https://api.github.com",
-        gitsenseApiUrls: {
-            github: "https://api.gitsense.com/github"
-        },
-        gitsenseHomeUrl: "https://gitsense.github.io"
-    },
     events: {},
     gitsense: {
         data: {
@@ -38,6 +40,7 @@ var sdes = {
         }
     },
     github: {
+        comp: {},
         data: {},
         pages: {},
         ui: {
@@ -45,5 +48,6 @@ var sdes = {
         },
         utils: {}
     },
+    ui: {},
     utils: {}
 };

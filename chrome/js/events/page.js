@@ -24,9 +24,21 @@ sdes.events.page = function() {
 
         lastLocation = $.extend(true, {}, window.location);
 
+        var host = getHost();
+
         for ( var i = 0; i < callbackOnChange.length; i++ )
-            callbackOnChange[i]();
+            callbackOnChange[i](host);
 
         setTimeout(_this.startTracking, timeout);
+    }
+
+    function getHost() {
+        if ( window.location.host.match(/bitbucket/) )
+            return "bitbucket";
+
+        if ( window.location.host.match(/github/) )
+            return "github";
+
+        throw("GitSense: Unable to determine host provider based on URI");
     }
 }

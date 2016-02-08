@@ -1,16 +1,37 @@
 sdes.gitsense.data.commits = function(host, owner, repo) {
     "use strict";
 
-    if ( host !== "github" )
-        throw("GitSense: Unsupported git host provider '"+host+"'")
-
-    var apiServer = sdes.config.gitsenseApiUrls[host],
+    var urlPrefix = sdes.config.gitsenseApiUrl+"/host/"+host+"/"+owner+"/"+repo+"/commits",
         varUtil   = new sdes.utils.variable(),
-        urlPrefix = apiServer+"/"+owner+"/"+repo+"/commits",
         cache     = sdes.cache.gitsense.data.commits;
 
     if ( cache === undefined )
-        throw("GitSense: Cache not setup properly for sdes.gitsense.data.commits");
+        throw("GitSense: No cache object for sdes.gitsense.data.commits");
+
+    this.getCodeChurn = function(commits, callback) {
+        if ( cache.getCommitsCodeChurn === undefined )
+            cache.getCommitsCodeChurn = {};
+
+        var data = { commits: JSON.stringify(commits) },
+            key  = CryptoJS.MD5(JSON.stringify(data));
+
+        if ( cache.getCommitsCodeChurn[key] !== undefined ) {
+            callback(cache.getCommitsCodeChurn[key]);
+            return;
+        }
+
+        $.ajax({
+            url: urlPrefix+"/codechurn",
+            data: { commits: JSON.stringify(commits) },
+            success: function(results) {
+                cache.getCommitsCodeChurn[key] = results;
+                callback(results);
+            },
+            error: function(e) {
+                callback(null, e);
+            }
+        });
+    }
 
     this.mapById = function(ids, callback) {
         if ( cache.idToCommit === undefined )

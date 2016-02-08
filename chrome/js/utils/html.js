@@ -1,7 +1,11 @@
 sdes.utils.html = function() {
     var _this   = this,
         varUtil = new sdes.utils.variable();
-    
+   
+    this.createBreak = function() {
+        return createBasicElement("br");
+    }
+
     this.createDiv = function(params) {
         return createBasicElement("div", params);
     }
@@ -23,11 +27,15 @@ sdes.utils.html = function() {
     }
 
     this.createParagraph = function(params) {
-        return createTableElement("p", params)
+        return createBasicElement("p", params)
     };
 
     this.createOrderedList = function(params) {
         return createTableElement("ol", params)
+    }
+
+    this.createUnorderedList = function(params) {
+        return createTableElement("ul", params)
     }
 
     this.createList = function(params) {
@@ -238,31 +246,38 @@ sdes.utils.html = function() {
         if ( varUtil.isNoU(params) )
             return elem;
     
-        if ( params.append !== undefined && params.append != null )
-            elem.appendChild(params.append);
-    
-        if ( params.id !== undefined && params.id !== null )
+        if ( ! varUtil.isNoU(params.id) )
             elem.id = params.id;
     
-        if ( params.html !== undefined && params.html !== null )
+        if ( ! varUtil.isNoU(params.html) )
             $(elem).html(params.html);
     
-        if ( params.text !== undefined && params.text !== null )
+        if ( ! varUtil.isNoU(params.text) )
             $(elem).text(params.text);
     
-        if ( params.cls !== undefined && params.cls !== null )
+        if ( ! varUtil.isNoU(params.cls) )
             elem.setAttribute("class", params.cls);
+
+        if ( type === "td" && ! varUtil.isNoU(params.rowSpan) )
+            elem.rowSpan = params.rowSpan;
     
-        if ( type === "td" && params.colSpan !== undefined )
+        if ( type === "td" && ! varUtil.isNoU(params.colSpan) )
             elem.colSpan = params.colSpan;
+
+        if ( ! varUtil.isNoU(params.append) ) {
+            if ( params.append.length !== undefined ) {
+                for ( var i = 0; i < params.append.length; i++ )
+                    elem.appendChild(params.append[i]);
+            } else {
+                elem.appendChild(params.append);
+            }
+        }
     
         if ( varUtil.isNoU(params.style) )
             return elem;
     
         for ( style in params.style )
-        {
             elem.style[style] = params.style[style];
-        }
     
         return elem;
     }
@@ -273,9 +288,6 @@ sdes.utils.html = function() {
     
         if ( varUtil.isNoU(params) )
             return elem;
-    
-        if ( ! varUtil.isNoU(params.append) )
-            elem.appendChild(params.append);
     
         if ( ! varUtil.isNoU(params.id) )
             elem.id = params.id;
@@ -301,6 +313,15 @@ sdes.utils.html = function() {
 
         if ( ! varUtil.isNoU(params.pointerEvents) )
             elem.setAttribute("pointer-events", params.pointerEvents);
+
+        if ( ! varUtil.isNoU(params.append) ) {
+            if ( params.append.length !== undefined ) {
+                for ( var i = 0; i < params.append.length; i++ )
+                    elem.appendChild(params.append[i]);
+            } else {
+                elem.appendChild(params.append);
+            }
+        }
     
         if ( varUtil.isNoU(params.style) )
             return elem;
@@ -350,6 +371,9 @@ sdes.utils.html = function() {
     
         if ( ! varUtil.isNoU(params.cls) )
             img.setAttribute("class", params.cls);
+
+        if ( ! varUtil.isNoU(params.title) )
+            img.title = params.title;
     
         if ( varUtil.isNoU(params.style) )
             return img;

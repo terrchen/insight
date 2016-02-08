@@ -1,21 +1,21 @@
 sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
     "use strict";
 
-    if ( host !== "github" )
-        throw("GitSense: Unsupported git host provider '"+host+"'")
-
-    var apiServer       = sdes.config.gitsenseApiUrls[host],
+    var urlPrefix       = sdes.config.gitsenseApiUrl+"/host/"+host+"/"+owner+"/"+repo,
+        token           = sdes.config.gitsenseAccessToken,
         varUtil         = new sdes.utils.variable(),
-        urlPrefix       = apiServer+"/"+owner+"/"+repo,
-        branchUrlPrefix = varUtil.isNoU(branch) ? null : urlPrefix+"/"+branch,
-        cache           = sdes.cache.gitsense.data.branch.heads;
+        cache           = sdes.cache.gitsense.data.branch.heads,
+        branchUrlPrefix = varUtil.isNoU(branch) ? null : urlPrefix+"/"+branch;
 
     if ( varUtil.isNoU(cache) )
-        throw("GitSense: Cache not setup properly for sdes.gitsense.data.branch.heads");
+        throw("GitSense Error: No cache object for sdes.gitsense.data.branch.heads");
 
     this.getLatest = function(callback) {
         $.ajax({
             url: branchUrlPrefix+"/heads/latest",
+            data: {
+                token: token
+            },
             success: function(head) {
                 callback(head);
             },
@@ -28,6 +28,9 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
     this.getSummary = function(head, callback) {
         $.ajax({
             url: branchUrlPrefix+"/heads/"+head,
+            data: {
+                token: token
+            },
             success: function(summary) {
                 callback(summary);
             },
@@ -37,60 +40,163 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
         });
     } 
 
-    this.getCommits = function(head, callback, options) {
-        if ( options === undefined )
-            options = {};
-
-        var page = varUtil.isNoU(options.page) ? 1 : options.page,
-            mpp  = varUtil.isNoU(options.mpp) ? 20 : options.mpp;
- 
-        $.ajax({
-            url: branchUrlPrefix+"/heads/"+head+"/list/commits",
-            data: {
-                mpp: mpp,
-                page: page
-            },
-            success: function(commits) {
-                callback(commits);
-            },
-            error: function(e) {
-                callback(null, e);
-            }
-        });
-    }
-
-    this.getCommitPoints = function(head, callback, args, maxDays) {
+    this.getCommitPoints = function(params) {
         if ( cache.getCommitPoints === undefined ) 
             cache.getCommitPoints = {};
 
-        if ( varUtil.isNoU(args) )
-            args = [];
+        if ( varUtil.isNoU(params.head) )
+            throw("GitSense: No branch head defined");
 
-        if ( varUtil.isNoU(maxDays) )
-            maxDays = 0;
+        if ( varUtil.isNoU(params.callback) )
+            throw("GitSense: No callback defined");
 
-        var data = { args: JSON.stringify(args), "max-days": maxDays },
-            key  = CryptoJS.MD5(head+":"+JSON.stringify(data));
+        var data = { 
+                grouping: params.grouping, 
+                args: params.args,
+                maxPoints: params.maxPoints,
+                notIn: params.notIn
+            },
+
+            key = CryptoJS.MD5(params.head+":"+JSON.stringify(data));
 
         if ( cache.getCommitPoints[key] !== undefined ) {
-            callback(cache.getCommitPoints[key]);
+            params.callback(cache.getCommitPoints[key]);
             return;
         }
 
+        data.token = token;
+
         $.ajax({
-            url: branchUrlPrefix+"/heads/"+head+"/points/commits",
+            url: branchUrlPrefix+"/heads/"+params.head+"/points/commits",
             data: data,
             success: function(points) {
                 cache.getCommitPoints[key] = points;
-                callback(points);
+                params.callback(points);
             },
             error: function(e) {
-                callback(null, e);
+                params.callback(null, e);
             }
         });
     }
 
-    this.getOrderedCommitIds = function(head, callback, args) {
+    this.getCodeChurnPoints = function(params) {
+        if ( cache.getCodeChurnPoints === undefined ) 
+            cache.getCodeChurnPoints = {};
+
+        if ( varUtil.isNoU(params.head) )
+            throw("GitSense: No branch head defined");
+
+        if ( varUtil.isNoU(params.callback) )
+            throw("GitSense: No callback defined");
+
+        var data = { 
+                grouping: params.grouping, 
+                args: params.args,
+                maxPoints: params.maxPoints,
+                notIn: params.notIn
+            },
+
+            key = CryptoJS.MD5(params.head+":"+JSON.stringify(data));
+
+        if ( cache.getCodeChurnPoints[key] !== undefined ) {
+            params.callback(cache.getCodeChurnPoints[key]);
+            return;
+        }
+
+        data.token = token; 
+
+        $.ajax({
+            url: branchUrlPrefix+"/heads/"+params.head+"/points/codechurn",
+            data: data,
+            success: function(points) {
+                cache.getCodeChurnPoints[key] = points;
+                params.callback(points);
+            },
+            error: function(e) {
+                params.callback(null, e);
+            }
+        });
+    }
+
+    this.getLoCPoints = function(params) {
+        if ( cache.getLocPoints === undefined ) 
+            cache.getLocPoints = {};
+
+        if ( varUtil.isNoU(params.head) )
+            throw("GitSense: No branch head defined");
+
+        if ( varUtil.isNoU(params.callback) )
+            throw("GitSense: No callback defined");
+
+        var data = { 
+                grouping: params.grouping, 
+                args: params.args,
+                maxPoints: params.maxPoints,
+                notIn: params.notIn
+            },
+
+            key = CryptoJS.MD5(params.head+":"+JSON.stringify(data));
+
+        if ( cache.getLocPoints[key] !== undefined ) {
+            params.callback(cache.getLocPoints[key]);
+            return;
+        }
+
+        data.token = token;
+
+        $.ajax({
+            url: branchUrlPrefix+"/heads/"+params.head+"/points/loc",
+            data: data,
+            success: function(points) {
+                cache.getLocPoints[key] = points;
+                params.callback(points);
+            },
+            error: function(e) {
+                params.callback(null, e);
+            }
+        });
+    }
+
+    this.getTreePoints = function(params) {
+        if ( cache.getTreePoints === undefined ) 
+            cache.getTreePoints = {};
+
+        if ( varUtil.isNoU(params.head) )
+            throw("GitSense: No branch head defined");
+
+        if ( varUtil.isNoU(params.callback) )
+            throw("GitSense: No callback defined");
+
+        var data = { 
+                grouping: params.grouping, 
+                args: params.args,
+                maxPoints: params.maxPoints,
+                notIn: params.notIn
+            },
+
+            key = CryptoJS.MD5(params.head+":"+JSON.stringify(data));
+
+        if ( cache.getTreePoints[key] !== undefined ) {
+            params.callback(cache.getTreePoints[key]);
+            return;
+        }
+
+        data.token = token;
+
+        $.ajax({
+            url: branchUrlPrefix+"/heads/"+params.head+"/points/tree",
+            data: data,
+            success: function(points) {
+                cache.getTreePoints[key] = points;
+                params.callback(points);
+            },
+            error: function(e) {
+                params.callback(null, e);
+            }
+        });
+    }
+
+    this.getOrderedCommitIds = function(head, callback, args, notIn) {
         if ( cache.getOrderedCommitIds === undefined )
             cache.getOrderedCommitIds = {};
 
@@ -101,6 +207,8 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
             callback(cache.getOrderedCommitIds[key]);
             return;
         }
+
+        data.token = token;
 
         $.ajax({
             url: branchUrlPrefix+"/heads/"+head+"/commits/ordered-ids",
@@ -115,53 +223,25 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
         });
     }
 
-    this.getCodeChurnPoints = function(head, callback, args, maxDays) {
-        if ( cache.getCodeChurnPoints === undefined )
-            cache.getCodeChurnPoints = {};
+    this.getChangesTreeKids = function(head, path, callback, callbackParams) {
+        if ( cache.getOrderedCommitIds === undefined )
+            cache.getChangesTreeKids = {};
 
-        if ( varUtil.isNoU(args) )
-            args = [];
-
-        if ( varUtil.isNoU(maxDays) )
-            maxDays = 0;
-
-        var data = { args: JSON.stringify(args), "max-days": maxDays },
+        var data = { path: path },
             key  = CryptoJS.MD5(head+":"+JSON.stringify(data));
 
-        if ( cache.getCodeChurnPoints[key] !== undefined ) {
-            callback(cache.getCodeChurnPoints[key]);
+        if ( cache.getChangesTreeKids[key] !== undefined ) {
+            callback(cache.getChangesTreeKids[key]);
             return;
         }
 
-        $.ajax({
-            url: branchUrlPrefix+"/heads/"+head+"/points/codechurn",
-            data: data,
-            success: function(points) {
-                callback(points);
-            },
-            error: function(e) {
-                callback(null, e);
-            }
-        });
-    }
-
-    this.getCommitsStats = function(head, callback) {
-        $.ajax({
-            url: branchUrlPrefix+"/heads/"+head+"/stats/short",
-            success: function(stats) {
-                callback(stats);
-            },
-            error: function(e) {
-                callback(null, e);
-            }
-        });
-    }
-
-    this.getChangesTreeKids = function(head, path, callback, callbackParams) {
+        data.token = token;
+        
         $.ajax({
             url: branchUrlPrefix+"/heads/"+head+"/chgstree/kids",
-            data: { path: path },
+            data: data,
             success: function(kids) {
+                cache.getChangesTreeKids[key] = kids;
                 callback(kids, callbackParams);
             },
             error: function(e) {
@@ -171,12 +251,24 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
     }
 
     this.getChangesTreeHistory = function(head, path, page, callback, callbackParams) {
+        if ( cache.getChangesTreeHistory === undefined )
+            cache.getChangesTreeHistory = {};
+
+        var data = { path: path, page: page },
+            key  = CryptoJS.MD5(head+":"+JSON.stringify(data));
+
+        if ( cache.getChangesTreeKids[key] !== undefined ) {
+            callback(cache.getChangesTreeKids[key]);
+            return;
+        }
+
+        data.token = token;
+        
         $.ajax({
             url: branchUrlPrefix+"/heads/"+head+"/chgstree/history",
-            data: { 
-                path: path
-            },
+            data: data,
             success: function(results) {
+                cache.getChangesTreeKids[key] = results;
                 callback(results, callbackParams);
             },
             error: function(e) {
@@ -185,52 +277,48 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
         });
     }
 
-    this.search = function(head, type, args, page, callback) {
+    this.search = function(params) {
+        if ( varUtil.isNoU(params.head) )
+            throw("GitSense: Missing branch head paramater");
+
+        if ( varUtil.isNoU(params.type) )
+            throw("GitSense: Missing search type paramater");
+
+        if ( varUtil.isNoU(params.args) )
+            throw("GitSense: Missing search arguments paramater");
+
+        if ( varUtil.isNoU(params.callback) )
+            throw("GitSense: Missing callback paramater");
+
+        var page          = varUtil.isNoU(params.page) ? 1 : params.page;
+        var caseSensitive = varUtil.isNoU(params.caseSensitive) ? false : params.caseSensitive;
+
         if ( cache.search === undefined )
             cache.search = {};
        
-        var data = { args: JSON.stringify(args), page: page },
-            key  = CryptoJS.MD5(head+":"+type+":"+JSON.stringify(data));
+        var data = { 
+                args: JSON.stringify(params.args), 
+                page: page, 
+                caseSensitive: caseSensitive
+            },
+            key = CryptoJS.MD5(params.head+":"+params.type+":"+JSON.stringify(data));
 
         if ( cache.search[key] !== undefined ) {
-            callback(cache.search[key]);
+            params.callback(cache.search[key]);
             return;
         }
 
+        data.token = token;
+
         $.ajax({
-            url: branchUrlPrefix+"/heads/"+head+"/search/"+type,
+            url: branchUrlPrefix+"/heads/"+params.head+"/search/"+params.type,
             data: data,
             success: function(results) {
                 cache.search[key] = results;
-                callback(results);
+                params.callback(results);
             },
             error: function(e) {
-                callback(null, e);
-            }
-        });
-    }
-
-    this.getCommitsCodeChurn = function(head, commits, callback) {
-        if ( cache.getCommitsCodeChurn === undefined )
-            cache.getCommitsCodeChurn = {};
-
-        var data = { commits: JSON.stringify(commits) },
-            key  = CryptoJS.MD5(head+":"+JSON.stringify(data));
-
-        if ( cache.getCommitsCodeChurn[key] !== undefined ) {
-            callback(cache.getCommitsCodeChurn[key]);
-            return;
-        }
-
-        $.ajax({
-            url: branchUrlPrefix+"/heads/"+head+"/commits/codechurn",
-            data: { commits: JSON.stringify(commits) },
-            success: function(results) {
-                cache.getCommitsCodeChurn[key] = results;
-                callback(results);
-            },
-            error: function(e) {
-                callback(null, e);
+                params.callback(null, e);
             }
         });
     }
@@ -245,25 +333,15 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
             callback(cache.getBranchHeads[url]);
             return;
         }
-            
+
         $.ajax({
             url: url,
+            data: {
+                token: token
+            },
             success: function(branchToHead) {
                 cache.getBranchHeads[url] = branchToHead;
                 callback(branchToHead);
-            },
-            error: function(e) {
-                callback(null, e);
-            }
-        });
-    }
-
-    this.buildSearchContext = function(sha, args, callback) {
-        $.ajax({
-            url: branchUrlPrefix+"/heads/"+sha+"/search/build",
-            data: { args: JSON.stringify(args) },
-            success: function(results) {
-                callback(results);
             },
             error: function(e) {
                 callback(null, e);

@@ -6,14 +6,16 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
         htmlUtil = new sdes.utils.html(),
         bhdata   = new sdes.gitsense.data.branch.heads(host, owner, repo, branch),
 
-        pathToRow      = {},
-        renderedPath   = {},
+        pathToRow    = {},
+        renderedPath = {},
+        showTriangle = true,
+        setRowWidth  = true,
+        hideDeleted  = false,
 
         triangleDownCls,
         triangleRightCls,
         folderOpenedCls,
         folderClosedCls,
-        subFolderCls,
         symlinkFolderCls,
         nameLinkCls,
         searchCls,
@@ -22,19 +24,44 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
         deletedColor,
         deletedFolderColor,
         regularFolderColor,
+        subFolderCls,
 
         textFileCls,
         plusCls,
-        minusCls;
+        minusCls,
+
+        treeStyle;
 
     this.setStyle = function(name) {
+        treeStyle = name;
+ 
         switch(name) {
+            case "bitbucket":
+                searchCls        = "aui-icon aui-icon-small aui-iconfont-search";
+                triangleDownCls  = "aui-icon aui-icon-small aui-iconfont-expanded";
+                triangleRightCls = "aui-icon aui-icon-small aui-iconfont-collapsed";
+                folderClosedCls  = "aui-icon aui-icon-small aui-iconfont-devtools-folder-closed";
+                folderOpenedCls  = "aui-icon aui-icon-small aui-iconfont-devtools-folder-open";
+                subFolderCls     = "aui-icon aui-icon-small aui-iconfont-devtools-submodule";
+                symlinkFolderCls = "aui-icon aui-icon-small aui-iconfont-sidebar-link";
+                nameLinkCls      = "";
+
+                plusCls = "aui-icon aui-icon-small aui-iconfont-add";
+
+                textFileCls = "aui-icon aui-icon-small aui-iconfont-devtools-file";
+
+                deletedColor       = "#bbb";
+                folderFontSize     = "18px";
+                deletedFolderColor = deletedColor;
+                regularFolderColor = "#4078c0";
+
+                break;
             case "github":
                 searchCls        = "octicon octicon-search";
                 triangleDownCls  = "octicon octicon-triangle-down";
                 triangleRightCls = "octicon octicon-triangle-right";
                 folderClosedCls  = "octicon octicon-file-directory";
-                folderOpenedCls  = "octicon octicon-file-directory";
+                folderOpenedCls  = "";
                 subFolderCls     = "octicon octicon-file-submodule";
                 symlinkFolderCls = "octicon octicon-file-symlink-directory";
                 nameLinkCls      = "js-directory-link js-navigation-open";
@@ -59,9 +86,17 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
 
         if ( showKids ) {
             row.triangleIcon.setAttribute("class", triangleDownCls);
+
+            if ( folderOpenedCls !== "" && row.type === "tree" )
+                row.typeIcon.setAttribute("class", folderOpenedCls);
+
             $(row.kidsBody).show();
         } else {
             row.triangleIcon.setAttribute("class", triangleRightCls);
+
+            if ( folderClosedCls !== "" && row.type === "tree" )
+                row.typeIcon.setAttribute("class", folderClosedCls);
+
             $(row.kidsBody).hide();
         }
     }
@@ -132,8 +167,9 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
                             textAlign: "center",
                             fontSize: "14px",
                             position: "relative",
-                            top: "-1px",
-                            color: fontColor
+                            top: treeStyle === "bitbucket"? "2px" : "3px",
+                            color: fontColor,
+                            display: showTriangle ? null : "none"
                         }
                     }),
 
@@ -154,7 +190,9 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
                         text: kid.name,
                         style: {
                             cursor: "pointer",
-                            color: fontColor
+                            color: fontColor,
+                            position: "relative",
+                            top: treeStyle === "bitbucket" ? "2px" : "4px"
                         }
                     }),
 
@@ -165,14 +203,14 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
                         style: { 
                             display: "none",
                             paddingLeft: "15px",
-                            width: "100%"
+                            //width: "100%"
                         }
                     }),
 
                 row = 
                     htmlUtil.createDiv({
                         style: {
-                            width: "100%",
+                            //width: "100%",
                             whiteSpace: "nowrap",
                             paddingTop: "5px",
                             paddingBottom: "5px",
@@ -187,6 +225,9 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
             row.path         = path;
             row.type         = kid.type;
             row.searchPlus  = searchPlus;
+
+            if ( kid.deleted && hideDeleted )
+                $(row).hide();
 
             pathToRow[path] = row;
 
@@ -239,7 +280,9 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
                         text: kid.name,
                         style: {
                             color: fontColor,
-                            cursor: "pointer"
+                            cursor: "pointer",
+                            position: "relative",
+                            top: treeStyle === "bitbucket" ? "2px" : "4px"
                         }
                     }),
 
@@ -259,14 +302,14 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
                         style: { 
                             display: "none",
                             paddingLeft: "15px",
-                            width: "100%"
+                            //width: "100%"
                         }
                     }),
 
                 row = 
                     htmlUtil.createDiv({
                         style: {
-                            width: "100%",
+                            //width: "100%",
                             whiteSpace: "nowrap",
                             paddingTop: "5px",
                             paddingBottom: "5px",
@@ -291,6 +334,9 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
             row.type         = kid.type;
             row.searchPlus   = searchPlus;
 
+            if ( kid.deleted && hideDeleted )
+                $(row).hide();
+                
             params.renderTo.appendChild(row);
 
             pathToRow[path] = row;
@@ -345,11 +391,11 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
 
                 container = 
                     htmlUtil.createSpan({
-                        cls: "right",
                         style: {
                             display: "none",
                             cursor: "pointer",
-                            color: "#999"
+                            color: "#999",
+                            cssFloat: "right"
                         }
                     });
 
@@ -379,7 +425,7 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
             var row =
                     htmlUtil.createDiv({
                         style: {
-                            width: "100%",
+                            //width: "100%",
                             overflow: "hidden",
                             whiteSpace: "nowrap",
                             paddingLeft: "25px",
@@ -404,6 +450,10 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
             row.appendChild(body);
 
             params.renderTo.appendChild(row);
+
+            avatar.onclick = clickedAvatar;
+
+            updateAvatar();
 
             function getAction() {
                 var change  = commit.changes[0],
@@ -472,9 +522,13 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
             }
 
             function getTitle() {
-                var link = 
+                var href = 
+                        "/"+owner+"/"+repo+"/commit"+
+                        ( host === "github" ? "" : "s")+
+                        "/"+commit.name,
+                    link = 
                         htmlUtil.createLink({
-                            href: "/"+owner+"/"+repo+"/commit/"+commit.name,
+                            href: href,
                             target: "_blank",
                             text: commit.title,
                             style: {
@@ -495,6 +549,22 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
                         });
 
                 return title;
+            }
+
+            function clickedAvatar() {
+                if ( varUtil.isNoU(options.onclickavatar) )
+                    return;
+
+                options.onclickavatar(avatar, commit);
+            }
+
+            function updateAvatar() {
+                chrome.storage.local.get(commit.authorEmail, function(emailToImage){
+                    if ( emailToImage[commit.authorEmail] === undefined )
+                        return;
+
+                    avatar.src = emailToImage[commit.authorEmail];
+                });
             }
         }
     }

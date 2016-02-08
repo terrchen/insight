@@ -2,18 +2,18 @@ sdes.github.utils.page = function() {
     var varUtil = new sdes.utils.variable();
 
     this.parse = function(callback) {
-        var names = window.location.pathname.replace(/^\//, "").split(/\//);
+        var names = window.location.pathname.replace(/^\/|\/$/, "").split(/\//);
 
-        if ( names.length < 3 ) {
+        if ( names.length < 2 ) {
             callback(null);
             return;
         }
 
         var repoOwner = names.shift(),
             repoName  = names.shift(),
-            page      = names.shift();
+            page      = names.length === 0 ? "tree" : names.shift();
 
-        if ( page !== "commits" && page !== "branches" ) {
+        if ( page !== "tree" && page !== "commits" && page !== "branches" ) {
             callback(null);
             return;
         }
@@ -22,6 +22,8 @@ sdes.github.utils.page = function() {
             parseCommitsPage();
         else if ( page === "branches" ) 
             parseBranchesPage(names);
+        else if ( page === "tree" )
+            parseTreePage(names);
         else
             throw("GitSense: Unrecognized GitHub page type '"+page+"'");
 
@@ -56,7 +58,7 @@ sdes.github.utils.page = function() {
             // finished loading.  The best that we can do is scrape this page every
             // "x" milliseconds to see if we have enough information to continue
             // and give up after "x" milliseconds of testing.
-            var sleep  = 100,
+            var sleep  = 50,
                 stopAt = new Date().getTime() + 2000; // Give up after 2 seconds
  
             wait(stopAt);
@@ -70,10 +72,16 @@ sdes.github.utils.page = function() {
                 if ( elems === null )
                     throw("GitSense: Couldn't find the commit class");
                 
-                if ( elems.length === 0 )
+                if ( 
+                    elems.length === 0 || 
+                    elems[0].dataset === undefined ||
+                    elems[0].dataset.channel === undefined 
+                ) {
                     setTimeout(function(){ wait(stopAt); }, sleep);
-                else
-                    ready();
+                    return;
+                }
+ 
+                ready();
             }
 
             function ready(giveUp) {
@@ -278,7 +286,10 @@ sdes.github.utils.page = function() {
                     for ( i = 0; i < nodes.length; i++ ) {
                         node = nodes[i];
 
-                        if ( ! node.className.match(/branch-name/) )
+                        if ( varUtil.isNoU(node.tagName) || node.tagName !== "A" )
+                            continue;
+
+                        if ( varUtil.isNoU(node.className) || ! node.className.match(/branch-name/) )
                             continue;
 
                         return node.innerText;  
@@ -286,6 +297,195 @@ sdes.github.utils.page = function() {
 
                     throw("GitSense: Unable to find the branch name");
                 }
+            }
+        }
+
+        function parseTreePage(names, path) {
+            if ( names.length == 0 ) {
+                path = "";
+            } else if ( varUtil.isNoU(path) ) {
+                getPath(
+                    function(path){
+                        parseTreePage(names, path);
+                    },
+                    (new Date().getTime()+2000)
+                );
+
+                return;
+            }
+
+            // See parseCommitPage to learn more about the gitsenseBranch variable
+            var gitsenseBranch = null;
+
+            if ( 
+                ! varUtil.isNoU(window.location.search) && 
+                window.location.search !== ""
+            ) {
+                if ( ! window.location.search.match(/\?gitsense-branch=/) ) {
+                    callback({ 
+                        type: page,
+                        owner: repoOwner,
+                        repo: repoName,
+                        branch: null,
+                        head: null
+                    });
+                    return;
+                }
+
+                gitsenseBranch = window.location.search.split("=").pop();
+            }
+
+            var sleep  = 50,
+                stopAt = new Date().getTime() + 2000; // Give up after 2 seconds
+ 
+            wait(stopAt);
+
+            function wait(stopAt) {
+                if ( new Date().getTime() > stopAt )
+                    throw("GitSense: We've given up on waiting for the page to load");
+
+                var elems = document.getElementsByClassName("file-navigation");
+
+                if ( elems === null )
+                    throw("GitSense: Couldn't find the file-navigation class");
+                
+                if ( elems.length === 0 ) {
+                    setTimeout(function(){ wait(stopAt); }, sleep);
+                    return;
+                }
+
+                elems = document.getElementsByClassName("commit-tease-sha");
+
+                if ( elems === null || elems.length !== 1 || elems[0].href === undefined ) {
+                    setTimeout(function(){ wait(stopAt); }, sleep);
+                    return;
+                }
+
+                ready();
+            }
+
+            function ready(giveUp) {
+                var buttons = document.getElementsByClassName("select-menu-button");
+
+                if ( buttons === null )
+                    throw("GitSense: Couldn't find the select-menu-button class");
+
+                var i,
+                    button,
+                    arialLabel;
+
+                for ( i = 0; i < buttons.length; i++ ) {
+                    button    = buttons[i];
+                    ariaLabel = button.getAttribute("aria-label");
+
+                    if ( ariaLabel !== null && ariaLabel === "Switch branches or tags" )
+                        break;
+
+                    button = null;
+                }
+
+                if ( varUtil.isNoU(button) ) {
+                    if ( giveUp ) 
+                        throw("GitSense: We've given up on waiting for the page to load");
+                
+                    // We'll try one last time 
+                    setTimeout(function(){ ready(true); }, 250);
+                    return; 
+                }
+
+                var type   = button.childNodes[1].innerText.replace(/:$/, "").toLowerCase(),
+                    value  = button.childNodes[3].innerText,
+                    head   = type === "tag" ? null : getHeadCommit(type),
+                    branch = 
+                        gitsenseBranch === null ? 
+                            type === "tree" || type === "tag" ? 
+                                null : value : 
+                            gitsenseBranch;
+
+
+                callback({
+                    type: page,
+                    owner: repoOwner,
+                    repo: repoName,
+                    branch: branch,
+                    head: head,
+                    path: path
+                });
+
+                function getHeadCommit(type) {
+                    var elems = document.getElementsByClassName("commit-tease-sha");
+
+                    if ( elems === null )
+                        throw("GitSense: The commit-tease-sha class doesn't exist");
+
+                    if ( elems.length !== 1 || elems[0].href === undefined )
+                        throw("GitSense: We don't now how to parse this page anymore");
+
+                    return elems[0].href.split("/").pop();
+                }
+
+                function getPageCommits() {
+                    var commits = [],
+                        elems = document.getElementsByClassName("commit-title"),
+                        commit,
+                        kids,
+                        kid,
+                        i,
+                        j;
+
+                    for ( i = 0; i < elems.length; i++ ) {
+                        kids = elems[i].childNodes;
+
+                        for ( j = 0; j < kids.length; j++ ) {
+                            kid = kids[j];
+
+                            if ( 
+                                kid.tagName === undefined ||
+                                kid.tagName.toLowerCase() !== "a" ||
+                                kid.className !== "message" 
+                            ) {
+                                continue;
+                            }
+
+                            commit = kid.href.split("/").pop();
+
+                            if ( commit.length !== 40 )
+                                continue;
+
+                            commits.push(commit);
+                            break; 
+                        }
+                    }
+
+                    return commits;
+                }
+            }
+
+            function getPath(callback, stopAt) {
+                var breadcrumb = document.getElementsByClassName("breadcrumb");
+
+                if ( breadcrumb === null || breadcrumb.length === 0 ) {
+                    if ( new Date().getTime() < stopAt )
+                        setTimeout(function(){ getPath(callback, stopAt); }, 50);
+                    else
+                        throw("GitSense: Couldn't find the breadcrumb .. giving up");
+
+                    return;
+                }
+
+                var temp = breadcrumb[0].innerText.replace(/\/$/,"").split("/");
+                temp.shift();
+
+                if ( temp.length !== names.length - 1 ) {
+                    if ( new Date().getTime() < stopAt )
+                        setTimeout(function(){ getPath(callback, stopAt); }, 50);
+                    else
+                        throw("GitSense: Couldn't find the breadcrumb .. giving up");
+
+                    return;
+                }
+
+                callback(temp.join("/"));
             }
         }
     }
