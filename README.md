@@ -7,11 +7,11 @@ If you were just there, and you are here because you want to manually install th
 
 ## Google Chrome Install Instructions
 
-#### 1 - Download the source
+### 1 - Download the source
 
 You can clone this repository or download it.
 
-Once you have the source, go to where you've downloaded/cloned it and look for a directory called **chrome**.  Once you've located it, make a mental note of where it is stored, as you'll need this for step 4.
+Once you have the source, go to where you've downloaded/cloned it and look for a directory called **chrome**.  Once you've located it, make a mental note of where it's located, as you'll need this for step 4.
 
 ### 2 - Goto the Chrome Extensions Page
 
