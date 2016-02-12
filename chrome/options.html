@@ -3,7 +3,12 @@
 <head>
     <title>GitSense Configuration</title>
     <style>
-        h3 { margin-bottom: 5px } 
+        body { margin: 20px; font-size:13px;  }
+        code { background-color:#fafafa; border:1px solid #ccc; padding:1px; border-radius:3px; }
+        pre { font-size: 13px; font-family: monospace; }
+        h2 { margin-bottom: 10px; }
+        h3 { margin-top: 10px; margin-bottom: 5px; } 
+        p { line-height: 1.5; font-size: 13px; }
         input { padding: 3px; }
         .input-cell { display: table-cell }
         .input-status { width: 30px; display: none; }
@@ -20,39 +25,94 @@
             color: #3c763d;
             font-size: 13px;
         }
+        table { border: 1px solid #ccc; border-bottom: 0px; border-spacing: 0px; }
+        td.attribute-name { 
+            text-align:right; 
+            padding: 10px;
+            padding-right: 10px; 
+            border-bottom: 1px solid #ccc;
+            border-right: 1px solid #ccc;
+        }
+        td.attribute-desc {
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+        }
     </style> 
 </head>
-<body style="margin:20px">
+<body>
     <h1>GitSense Configuration</h1>
 
-    <h3>GitSense API URL</h3>
+    <h2>Servers</h2>
+
     <div class=input-cell>
-        <input id=gitsenseApiUrl-input type="text" style="width:400px">
+        <input id=gitsenseApiUrl-input type="text" 
+            placeholder="GitSense API URL" style="width:400px">
     </div>
 
-    <h3>Bitbucket API URL</h3>
-    <div class=input-cell>
-        <input id=bitbucketApiUrl-input type="text" style="width:400px">
+    <h2 style="margin-top:20px">Access Tokens and API keys</h2>
+   
+    <div style="width:600px;margin-bottom:10px;">
+        <p style="margin-top:0px;">
+            <strong>Only required for private repositories</strong><br>
+            In order to view private repositories 
+            with GitSense, you'll have to provide an access token 
+            (used by GitHub) or an API key (used by Bitbucket team), to 
+            confirm your repository read permission.&nbsp;<br>
+            <br>
+            <strong>Security</strong><br>
+            Access tokens/api keys are never stored on the GitSense server and
+            because GitSense only needs to verify your repository read permission,
+            you should only use access tokens with repository permissions and nothing more.&nbsp;
+            For API keys, you don't have to worry about this, as they already have limited access.&nbsp;
+            That is, they can't be used to read/modify your Bitbucket user account.<br>
+            <br>
+            <strong>Authentication Objects</strong><br>
+            To let GitSense know what access token/api key to use, you'll have to define a JSON
+            array with one or more authentication objects, which contains the following attributes:
+        </p>
+        <table>
+            <tr>
+                <td class=attribute-name>matches</td>
+                <td class=attribute-desc>
+                    A string containing a URL pattern
+                </td>
+            </tr>
+            <tr>
+                <td class=attribute-name>username</td>
+                <td class=attribute-desc>
+                    A string containing your GitHub/Bitbucket username.
+                </td>
+            </tr>
+            <tr>
+                <td class=attribute-name>secret</td>
+                <td class=attribute-desc>
+                    A string containing your Bitbucket API key or GitHub access token.
+                </td>
+            </tr>
+        </table> 
+        <p style="margin-top:15px;">
+            Below is an example of what the authentication rules will look like for the user johndohh:
+        </p>
+<pre style="border:1px solid #ccc;padding:10px;">
+[
+    { 
+        "matches": "https://api.github.com/*", 
+        "username": "jonhdohh",
+        "secret": "9aae8cfc5ad510115654d8b078f6ec85d986e0b8"
+    },
+    {
+        "matches": "https://api.bitbucket.com/*",
+        "username": "johndohh",
+        "secret": "mgw2iXO06WdqvqR2WeeTBGkypaQDKBQb"
+    }
+]
+</pre>
     </div>
-
-    <h3>GitHub API URL</h3>
+    <h3 style='margin-top:20px;'>Authentication Rules</h3>
     <div class=input-cell>
-        <input id=githubApiUrl-input type="text" style="width:400px">
-    </div>
-
-    <h3>Bitbucket Access Token</h3>
-    <div class=input-cell>
-        <input id=bitbucketAccessToken-input type="text" style="width:400px">
-    </div>
-
-    <h3>GitHub Access Token</h3>
-    <div class=input-cell>
-        <input id=githubAccessToken-input type="text" style="width:400px">
-    </div>
-
-    <h3>GitSense Access Token</h3>
-    <div class=input-cell>
-        <input id=gitsenseAccessToken-input type="text" style="width:400px">
+        <textarea id=accessTokens-input type="text" 
+            placeholder="Required to view private GitHub/Bitbucket repositories with GitSense"
+            style="width:595px;height:150px;font-family:monospace;"></textarea>
     </div>
 
     <br>
