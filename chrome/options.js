@@ -3,6 +3,10 @@
 // The DOMContentLoaded event is defined at the bottom of this script and is what
 // triggers this function.
 function load() {
+    // The following function will make the blocks in the options.html
+    // page collapsible/expandable
+    setupBlocks();
+
     // Get the locally stored settings.  If nothing is stored
     // locally, the current values that are defined by sdes.config
     // will be used.  Take a look at the js/config.js file to see
@@ -28,7 +32,11 @@ function load() {
             if ( input === null )
                 return;
 
-            input.value   = value;
+            input.value = 
+                value.length === 0 ? 
+                    "" : 
+                    JSON.stringify(value, null, 2);
+
             input.onkeyup = check;
         }
 
@@ -98,6 +106,32 @@ function load() {
                     ); 
                 }
             );
+        }
+    }
+
+    function setupBlocks(){ 
+        var elems = document.getElementsByClassName("block");
+
+        for ( var i = 0; i < elems.length; i++ ) {
+            var header = elems[i++];
+            var body   = elems[i];
+
+            init(header,body);
+        }
+
+        function init(header, body) {
+            var triangle = header.children[0],
+                title    = header.children[1];
+
+            title.onclick = function() {
+                if ( triangle.className.match(/down/) ) {
+                    body.style.display = "none";
+                    triangle.setAttribute("class", triangle.className.replace(/down/, "right"));
+                } else {
+                    body.style.display = "block";
+                    triangle.setAttribute("class", triangle.className.replace(/right/, "down"));
+                }
+            }
         }
     }
 }

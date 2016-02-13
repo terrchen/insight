@@ -4,12 +4,19 @@
 // See options.html and options.js for more information
 //
 sdes.config = {
-    "servers" : [ 
-        { "type": "bitbucket-api", "matches": "https://api.bitbucket.org" },
-        { "type": "bitbucket", "matches": "https://bitbucket.org/*" },
-        { "type": "github-api", "matches": "https://api.github.com" },
-        { "type": "github", "matches": "https://github.com" },
-        { "type": "gitsense", "matches": "matches": "https://api.gitsense.com" }
+    "page_rules" : [ 
+        { 
+            "type": "bitbucket", 
+            "matches": "https://bitbucket.org/*",
+            "host_api": "https://api.bitbucket.org",
+            "gitsense_api": "https://api.gitsense.com"
+        },
+        { 
+            "type": "github", 
+            "matches": "https://github.com/*",
+            "host_api": "https://api.github.com",
+            "gitsense_api": "https://api.gitsense.com"
+        }
     ],
-    "access_credentials": []
+    "auth_rules": []
 }
