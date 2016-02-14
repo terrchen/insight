@@ -43,7 +43,8 @@
         .block-title {
             cursor: pointer;
         }
-        .rules { width: 595px; height: 250px; font-family: monospace; margin-top: 5px; }
+        .error { width: 595px; color: #a94442; background-color:#f2dede; padding:10px; margin-top:20px; }
+        .rules { width: 500px; height: 450px; font-family: monospace; margin-top: 5px; }
         table { border: 1px solid #ccc; border-bottom: 0px; border-spacing: 0px; }
         td.attribute-name { 
             text-align:right; 
@@ -57,6 +58,13 @@
             padding: 10px;
             border-bottom: 1px solid #ccc;
         }
+        td.sub-attribute-name { 
+            text-align:right; 
+            padding: 5px;
+            padding-top: 0px;
+            vertical-align: top;
+        }
+        td.sub-attribute-desc { padding: 5px; padding-top: 0px; }
     </style> 
     <link rel="stylesheet" type="text/css" href="3rdparty/octicons/octicons.css"> 
 </head>
@@ -73,21 +81,22 @@
         </h3>
         <div class="block block-body" style="display:none">
             <p style="margin-top:0px;">
-            Page rules, which consists of one or more page objects (defined below), are used by GitSense to determine the current page type, with valid types being Bitbucket, GitHub and GitHub Enterprise.&nbsp;
-            And what API servers to use for that particular page.<br>
+            Page rules, which consists of one or more page objects (defined below), is used to
+            determine the current page type and required API servers.&nbsp;
+            <br> 
             <br>
             <strong>Page object</strong><br>
             <table style="margin-top:5px;">
                 <tr>
                     <td class=attribute-name>matches</td>
                     <td class=attribute-desc>
-                        A string containing a URL pattern to match against.
+                        A string containing a URL pattern to match against the current page location.
                     </td>
                 </tr>
                 <tr>
                     <td class=attribute-name>type</td>
                     <td class=attribute-desc>
-                        A string containing one of the following page type:
+                        A string containing one of the following page type values:
                         <ul>
                             <li>bitbucket</li>
                             <li>github</li>
@@ -96,15 +105,53 @@
                     </td>
                 </tr>
                 <tr>
-                    <td class=attribute-name>gitsense_api</td>
+                    <td class=attribute-name>gitsense</td>
                     <td class=attribute-desc>
-                        A string containing the URL to the GitSense API server.
+                        An object containing the following attributes:
+                        <table style="margin-top:10px;border:0px;line-height:1.5">
+                            <tr>
+                                <td class=sub-attribute-name>api:</td>
+                                <td class=sub-attribute-desc>
+                                    A string containing a URL to the GitSense API server
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class=sub-attribute-name>secret:</td>
+                                <td class=sub-attribute-desc>
+                                    An OPTIONAL string containing an access token for the GitSense server.&nbsp; Note a secret is only required if authentication has been enabled on the GitSense server.</td>
+                            </tr>
+                        </table>
                     </td>
                 </tr>
                 <tr>
-                    <td class=attribute-name>host_api</td>
+                    <td class=attribute-name>host</td>
                     <td class=attribute-desc>
-                        A string containing the Bitbucket/GitHub/GitHub Enterprise API server URL.
+                        An object containing the following attributes:
+                        <table style="margin-top:10px;border:0px;line-height:1.5">
+                            <tr>
+                                <td class=sub-attribute-name>api:</td>
+                                <td class=sub-attribute-desc>
+                                    A string containing a URL to the Bitbucket/GitHub/GitHub Enterprise API server. 
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class=sub-attribute-name>username:</td>
+                                <td class=sub-attribute-desc>
+                                    An OPTIONAL string containing your BitBucket/GitHub/GitHub Enteprise username.&nbsp; 
+                                    To view PRIVATE repositories with GitSense, you'll have to specify a username, as it is required to verify your repository read permission.
+                            </tr>
+                            <tr>
+                                <td class=sub-attribute-name>secret:</td>
+                                <td class=sub-attribute-desc>
+                                    An OPTIONAL string containing your access token (used by GitHub/GitHub Enterprise) or API key (used by Bitbucket teams).&nbsp;
+                                    To view PRIVATE repositories with GitSense, you'll have to specify a secret, as it is required to verify your repository read permission.
+                                    <br>
+                                    <br>
+                                    <strong>Security</strong><br>
+                                    You should only use access tokens with "Repo" scope and nothing more.&nbsp; For API keys, you don't have to worry, as they are limited by default.&nbsp; That is, API keys can't be used to modify Bitbucket account.
+                            </tr>
+                        </table>
+
                     </td>
                 </tr>
             </table> 
@@ -144,15 +191,16 @@
 </pre>
         </div>
         <h3 class="block">
-            <span class="octicon octicon-triangle-right triangle" style="font-size:12px;"></span>
+            <span class="octicon octicon-triangle-down triangle" style="font-size:12px;"></span>
             <span class="block-title">Rules</span>
         </h3>
-        <div class="block block-cell" style="display:none;">
+        <div class="block block-cell">
             Note page objects are processed in the order that they are defined.
             <textarea id=page_rules-input class=rules></textarea>
         </div>
     </div>   
 
+    <!--
     <h2 style="margin-top:20px">
         Authentication Rules
     </h2>
@@ -186,6 +234,18 @@
                     </td>
                 </tr>
                 <tr>
+                    <td class=attribute-name>type</td>
+                    <td class=attribute-desc>
+                        A string containing one of the following API types:
+                        <ul>
+                            <li>bitbucket</li>
+                            <li>github</li>
+                            <li>github-enterprise</li>
+                            <li>gitsense</li>
+                        </ul> 
+                    </td>
+                </tr>
+                <tr>
                     <td class=attribute-name>username</td>
                     <td class=attribute-desc>
                         A string containing your Bitbucket/GitHub/GitHub Enterprise username.&nbsp; 
@@ -214,23 +274,27 @@
 <pre style="border:1px solid #ccc;padding:10px;">
 [
     { 
+        "type": "github",
         "matches": "https://api.github.com/*", 
         "username": "jonhdohh",
         "secret": "9aae8cfc5ad510115654d8b078f6ec85d986e0b8"
     },
     {
+        "type": "bitbucket",
         "matches": "https://api.bitbucket.com/*",
         "username": "johndohh",
         "secret": "mgw2iXO06WdqvqR2WeeTBGkypaQDKBQb"
     },
     {
+        "type": "github-enterprise",
         "matches": "https://192.168.1.1/api/v3/*",
         "username": "johndohh",
         "secret": "e9c8233e94a7993fd47975f62296a8f68604d3b8"
     },
     {
+        "type": "gitsense",
         "matches": "https://192.168.1.2/*",
-        "secret": "mKAhnHdBYfByJNrvQbdV1Bf5lyXoKnQGTcbM62cpP71Hli2QakkzD8naUBPS"
+        "secret": "mKAhnHdBYfByJNrvQbdV1Bf5lyXoKnQGTcbM62c2"
     }
 ]
 </pre>
@@ -250,9 +314,11 @@
         If required, remember to update the <b>permissions</b> and <b>matches</b> value 
         in the manifest.json file and to reload the extension.
     </div>
+-->
 
     <input class=button id=save-button type=button value="Save" disabled>
     <span id=save-status style="margin-left:5px"></span>
+    <div id=save-error class=error style="display:none;"></div>
 
     <script src="js/arch.js"></script>
     <script src="js/config.js"></script>

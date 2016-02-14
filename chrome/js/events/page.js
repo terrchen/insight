@@ -1,4 +1,6 @@
 sdes.events.page = function() {
+    "use strict";
+
     var _this            = this,
         lastLocation     = $.extend(true, {}, window.location),
         timeout          = 200,

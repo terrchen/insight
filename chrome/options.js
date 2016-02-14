@@ -19,9 +19,13 @@ function load() {
     if ( saveButton === null )
         throw("GitSense: Save button does not exist");
 
+    var updatedTextArea = false;
+
     function update(localConfig) {
         for ( var key in localConfig ) 
             set(key, localConfig[key]);
+
+        updatedTextArea = true;
 
         function set(key, value) {
             var input = document.getElementById(key+"-input");
@@ -35,9 +39,14 @@ function load() {
             input.value = 
                 value.length === 0 ? 
                     "" : 
-                    JSON.stringify(value, null, 2);
+                    JSON.stringify(value, null, 2).replace(/__/g, "");
 
             input.onkeyup = check;
+
+            if ( updatedTextArea )
+                return;
+
+            input.autocorrect = input.autocomplete = input.autocapitalize = input.spellcheck = false; 
         }
 
         function check() {
@@ -70,7 +79,8 @@ function load() {
         function save() {
             var newConfig  = {},
                 changedUrl = false,
-                status     = document.getElementById("save-status");
+                status     = document.getElementById("save-status"),
+                error      = document.getElementById("save-error");
         
             status.textContent   = "Saving ...";
             status.style.display = null;
@@ -83,12 +93,44 @@ function load() {
                     continue;
                 }
 
-                newConfig[key] = input.value.replace(/^\s+|\s+$/, "");
+                input.value = input.value.replace(/^\s+/,"").replace(/\s+$/,"");
 
-                if ( newConfig[key] !== localConfig[key] && key.match(/url/i) )
-                    changedUrl = true;
+                if ( input.value === "" ) {
+                    newConfig[key] = [];
+                    continue;
+                }
+
+                var rules = null;
+
+                try {
+                    rules = JSON.parse(input.value);
+                } catch ( e ) {
+                    renderError(key, e.message);
+                    return;
+                }
+
+                switch ( key )  {
+                    case "page_rules": {
+                        if ( ! validPageRules(key, rules) )
+                            return;
+
+                        break;
+                    }
+                    case "auth_rules":
+                        if ( ! validAuthRules(key, rules) )
+                            return;
+
+                        break;
+                    default:
+                        throw("Unrecognized key '"+key+"'");
+                }
+
+                newConfig[key] = rules;
             }
-        
+       
+            console.dir(newConfig);
+            return;
+
             chrome.storage.local.set(
                 newConfig,
                 function() {
@@ -106,6 +148,124 @@ function load() {
                     ); 
                 }
             );
+
+            function validPageRules(key, rules) {
+                if ( rules.length === undefined ) {
+                    renderError(
+                        key,
+                        "Expecting an array but found "+typeof(rules)
+                    );
+
+                    return false;
+                }
+
+                var atts = [ "type", "matches", "host_api", "gitsense_api" ];
+
+                for ( var i = 0; i < rules.length; i++ ) {
+                    var rule = rules[i];
+
+                    for ( var j = 0; j < atts.length; j++ ) {
+                        var att   = atts[j];
+                        var value = rule[att];
+
+                        if ( value === undefined ) {
+                            renderError(
+                                key,
+                                "Rule "+(i+1)+" is missing the "+
+                                "\""+att+"\" attribute"
+                            );
+
+                            return false;
+                        }
+
+                        var type = typeof(value);
+
+                        if ( type !== "string" ) {
+                            renderError(
+                                key,
+                                input.value,
+                                "Expecting a string value for the \""+att+"\" attribute "+
+                                "but found a "+type+" type instead"
+                            );
+
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            function validAuthRules(key, rules) {
+                if ( rules.length === undefined ) {
+                    renderError(
+                        key,
+                        "Expecting an array but found "+typeof(rules)
+                    );
+
+                    return false;
+                }
+
+                var atts = [ "matches", "username", "secret" ];
+
+                for ( var i = 0; i < rules.length; i++ ) {
+                    var rule = rules[i];
+
+                    if ( rule.type === undefined ) {
+                        renderError(
+                            key,
+                            "Rule "+(i+1)+" is missing the \"type\" attribute"
+                        );
+    
+                        return false;
+                    }
+
+                    for ( var j = 0; j < atts.length; j++ ) {
+                        var att   = atts[j];
+                        var value = rule[att];
+
+                        if ( att === "username" && rule.type === "gitsense" )
+                            continue;
+
+                        if ( value === undefined ) {
+                            renderError(
+                                key,
+                                "Rule "+(i+1)+" is missing the "+
+                                "\""+att+"\" attribute"
+                            );
+
+                            return false;
+                        }
+
+                        var type = typeof(value);
+
+                        if ( type !== "string" ) {
+                            renderError(
+                                key,
+                                "Expecting a string value for the \""+att+"\" attribute "+
+                                "but found a "+type+" type instead"
+                            );
+
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            function renderError(type, message) {
+                status.style.display = "none";
+                error.style.display = "block";
+    
+                var temp = type.split("_"),
+                    rule = temp[0] === "auth" ? "authentication rules" : temp.join(" ");
+
+                error.innerHTML = 
+                    "<strong>Error</strong><br>"+
+                    "<pre style='white-space:pre-wrap;line-height:1.5'>"+
+                        message+" in \""+rule+"\"</pre>";
+            }
         }
     }
 
