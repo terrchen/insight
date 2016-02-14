@@ -21,11 +21,9 @@ var sdes = {
         gitsense: { 
             data: {
                 branch: {
-                    heads: { }
+                    heads: {}
                 },
-                commits: {
-
-                }
+                commits: {}
             }
         }
     },

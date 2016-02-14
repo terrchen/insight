@@ -1,9 +1,10 @@
 sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
     "use strict";
 
-    var urlPrefix       = sdes.config.gitsenseApiUrl+"/host/"+host+"/"+owner+"/"+repo,
-        token           = sdes.config.gitsenseAccessToken,
-        varUtil         = new sdes.utils.variable(),
+    var varUtil         = new sdes.utils.variable(),
+        configUtil      = new sdes.utils.config(),
+        rule            = configUtil.getRule(),
+        urlPrefix       = rule.gitsense.api+"/host/"+host+"/"+owner+"/"+repo,
         cache           = sdes.cache.gitsense.data.branch.heads,
         branchUrlPrefix = varUtil.isNoU(branch) ? null : urlPrefix+"/"+branch;
 
@@ -14,7 +15,7 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
         $.ajax({
             url: branchUrlPrefix+"/heads/latest",
             data: {
-                token: token
+                rule: JSON.stringify(rule)
             },
             success: function(head) {
                 callback(head);
@@ -29,7 +30,7 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
         $.ajax({
             url: branchUrlPrefix+"/heads/"+head,
             data: {
-                token: token
+                rule: JSON.stringify(rule)
             },
             success: function(summary) {
                 callback(summary);
@@ -64,7 +65,7 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
             return;
         }
 
-        data.token = token;
+        data.rule = JSON.stringify(rule);
 
         $.ajax({
             url: branchUrlPrefix+"/heads/"+params.head+"/points/commits",
@@ -103,7 +104,7 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
             return;
         }
 
-        data.token = token; 
+        data.rule = JSON.stringify(rule); 
 
         $.ajax({
             url: branchUrlPrefix+"/heads/"+params.head+"/points/codechurn",
@@ -142,7 +143,7 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
             return;
         }
 
-        data.token = token;
+        data.rule = JSON.stringify(rule);
 
         $.ajax({
             url: branchUrlPrefix+"/heads/"+params.head+"/points/loc",
@@ -181,7 +182,7 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
             return;
         }
 
-        data.token = token;
+        data.rule = JSON.stringify(rule);
 
         $.ajax({
             url: branchUrlPrefix+"/heads/"+params.head+"/points/tree",
@@ -208,7 +209,7 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
             return;
         }
 
-        data.token = token;
+        data.rule = JSON.stringify(rule);
 
         $.ajax({
             url: branchUrlPrefix+"/heads/"+head+"/commits/ordered-ids",
@@ -235,7 +236,7 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
             return;
         }
 
-        data.token = token;
+        data.rule = JSON.stringify(rule);
         
         $.ajax({
             url: branchUrlPrefix+"/heads/"+head+"/chgstree/kids",
@@ -262,7 +263,7 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
             return;
         }
 
-        data.token = token;
+        data.rule = JSON.stringify(rule);
         
         $.ajax({
             url: branchUrlPrefix+"/heads/"+head+"/chgstree/history",
@@ -308,7 +309,7 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
             return;
         }
 
-        data.token = token;
+        data.rule = JSON.stringify(rule);
 
         $.ajax({
             url: branchUrlPrefix+"/heads/"+params.head+"/search/"+params.type,
@@ -337,7 +338,7 @@ sdes.gitsense.data.branch.heads = function(host, owner, repo, branch) {
         $.ajax({
             url: url,
             data: {
-                token: token
+                rule: JSON.stringify(rule)
             },
             success: function(branchToHead) {
                 cache.getBranchHeads[url] = branchToHead;

@@ -5,6 +5,7 @@ sdes.events.page = function() {
         lastLocation     = $.extend(true, {}, window.location),
         timeout          = 200,
         varUtil          = new sdes.utils.variable(),
+        configUtil       = new sdes.utils.config(),
         callbackOnChange = [];
 
     this.setTimeout = function(newTimeout) {
@@ -26,21 +27,11 @@ sdes.events.page = function() {
 
         lastLocation = $.extend(true, {}, window.location);
 
-        var host = getHost();
+        var host = configUtil.getHost();
 
         for ( var i = 0; i < callbackOnChange.length; i++ )
             callbackOnChange[i](host);
 
         setTimeout(_this.startTracking, timeout);
-    }
-
-    function getHost() {
-        if ( window.location.host.match(/bitbucket/) )
-            return "bitbucket";
-
-        if ( window.location.host.match(/github/) )
-            return "github";
-
-        throw("GitSense: Unable to determine host provider based on URI");
     }
 }

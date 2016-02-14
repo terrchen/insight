@@ -39,6 +39,7 @@
             "js/events/page.js",
             "js/ui/pills.js",
             "js/utils/cli.js",
+            "js/utils/config.js",
             "js/utils/date.js",
             "js/utils/html.js",
             "js/utils/variable.js",
@@ -66,6 +67,7 @@
         "run_at":"document_start"
     }],
     "permissions": [
+        "https://192.168.1.71/*",
         "https://api.github.com/*",
         "https://api.gitsense.com/*",
         "https://bitbucket.org/*",

@@ -16,11 +16,12 @@
         .button { padding-left: 10px; padding-right: 10px; }
         .note { margin-bottom: 5px }
         .reminder { 
+            margin-top: 15px;
+            margin-bottom: 20px;
             padding: 10px; 
             border: 1px solid #3c763d;
             width: 388px; 
             display: none;
-            margin-bottom: 20px;
             line-height: 1.5;
             background-color: #dff0d8;
             color: #3c763d;
@@ -44,7 +45,7 @@
             cursor: pointer;
         }
         .error { width: 595px; color: #a94442; background-color:#f2dede; padding:10px; margin-top:20px; }
-        .rules { width: 500px; height: 450px; font-family: monospace; margin-top: 5px; }
+        .rules { width: 500px; height: 400px; font-family: monospace; margin-top: 5px; }
         table { border: 1px solid #ccc; border-bottom: 0px; border-spacing: 0px; }
         td.attribute-name { 
             text-align:right; 
@@ -81,8 +82,8 @@
         </h3>
         <div class="block block-body" style="display:none">
             <p style="margin-top:0px;">
-            Page rules, which consists of one or more page objects (defined below), is used to
-            determine the current page type and required API servers.&nbsp;
+            Page rules, which consists of one or more page objects (described below), are used by GitSense to determine the
+            current page type and required API servers.&nbsp;
             <br> 
             <br>
             <strong>Page object</strong><br>
@@ -96,7 +97,7 @@
                 <tr>
                     <td class=attribute-name>type</td>
                     <td class=attribute-desc>
-                        A string containing one of the following page type values:
+                        A string containing one of the following page types:
                         <ul>
                             <li>bitbucket</li>
                             <li>github</li>
@@ -135,20 +136,16 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td class=sub-attribute-name>username:</td>
-                                <td class=sub-attribute-desc>
-                                    An OPTIONAL string containing your BitBucket/GitHub/GitHub Enteprise username.&nbsp; 
-                                    To view PRIVATE repositories with GitSense, you'll have to specify a username, as it is required to verify your repository read permission.
-                            </tr>
-                            <tr>
                                 <td class=sub-attribute-name>secret:</td>
                                 <td class=sub-attribute-desc>
-                                    An OPTIONAL string containing your access token (used by GitHub/GitHub Enterprise) or API key (used by Bitbucket teams).&nbsp;
-                                    To view PRIVATE repositories with GitSense, you'll have to specify a secret, as it is required to verify your repository read permission.
+                                    An OPTIONAL string containing your access token (for GitHub/GitHub Enterprise) or API key (for Bitbucket).&nbsp;
+                                    To view <b>PRIVATE</b> repositories with GitSense, you'll have to specify a secret, as it is used to query the host API to verify your repository read permission.
                                     <br>
                                     <br>
                                     <strong>Security</strong><br>
-                                    You should only use access tokens with "Repo" scope and nothing more.&nbsp; For API keys, you don't have to worry, as they are limited by default.&nbsp; That is, API keys can't be used to modify Bitbucket account.
+                                    You should only use GitHub access tokens that have "repo" scope and nothing more.&nbsp;
+                                    That is, don't use access tokens that have "user" privilege among other things.&nbsp;
+                                    For API keys (Bitbucket), you can't and don't have to worry about changing their scope, as the scope is limited by default.
                             </tr>
                         </table>
 
@@ -158,34 +155,72 @@
         </div>
         <h3 class="block">
             <span class="octicon octicon-triangle-right triangle" style="font-size:12px;"></span>
-            <span class="block-title">Examples</span>
+            <span class="block-title">Example</span>
         </h3>
         <div class="block block-body" style="display:none;">
-            <p>
-                Below is an example of what your server rules would look like, if you 
-                would like to enable GitSense for Bitbucket, GitHub and a GitHub Enterprise
-                instance which is installed on 192.168.1.1, 
-                which uses a private GitSense server installed on 192.168.1.2
-            </p> 
+        <p>
+            <strong>Rule 1</strong><br>
+            Rule 1 will match repositories that are owned by the Bitbucket team "johndohh-team". &nbsp;
+            It also tells GitSense to use a private GitSense install, which is accessible from the local area network (192.168.1.2).&nbsp;
+            And it provides a secret (an API key), that can be used to query the Bitbucket API server (https://api.bitbucket.org), to verify the users read permission.<br>
+            <br>
+            <strong>Rule 2</strong><br>
+            Rule 2 will match all other Bitbucket repositories that are not owned by "johndohh-team".&nbsp;
+            This rule also tells GitSense to use the publicly available GitSense server (https://api.gitsense.com).<br>
+            <br>
+            <strong>Rule 3</strong><br>
+            Rule 3 will match all GitHub repositories and because no secret was provided, GitSense will not work for PRIVATE GitHub repositories.<br>
+            <br>
+            <strong>Rule 4</strong><br>
+            Rule 4 will match all repositories on a local GitHub Enterprise install (192.168.1.1).&nbsp;
+            It also provides a secret (token access), which can be used by GitSense to query the GitHub Enterprise API (https://192.168.1.1/api/v3), to verify their repository read permission.&nbsp;
+            And it uses a private GitSense install, which is accessible from their local area network (https://192.168.1.2).<br>
+        </p>
 <pre style="border:1px solid #ccc;padding:10px;">
 [
-    { 
+    {
+        "type": "bitbucket",
+        "matches": "https://bitbucket.org/johndohh-team/*",
+        "gitsense": {
+            "api": "https://192.168.1.2",
+            "secret": "mKAhnHdBYfByJNrvQbdV1Bf5lyXoKnQGTcbM62c2"
+        }, 
+        "host": {
+            "api": "https://api.bitbucket.org",
+            "secret": "mgw2iXO06WdqvqR2WeeTBGkypaQDKBQb"
+        }
+    },
+    {
         "type": "bitbucket",
         "matches": "https://bitbucket.org/*", 
-        "host_api": "https://api.bitbucket.org",
-        "gitsense_api": "https://api.gitsense.com"
+        "gitsense": {
+            "api": "https://api.gitsense.com"
+        }, 
+        "host": {
+            "api": "https://api.bitbucket.org"
+        }
     },
     {
         "type": "github",
         "matches": "https://github.com/*",
-        "host_api": "https://api.github.com",
-        "gitsense_api": "https://api.gitsense.com",
+        "gitsense": {
+            "api": "https://api.gitsense.com"
+        },
+        "host": {
+            "api": "https://api.github.com"
+        }
     },
     {
         "type": "github-enterprise",
         "matches": "https://192.168.1.1/*",
-        "host_api": "https://192.168.1.1/api/v3",
-        "gitsense_api": "https://192.168.1.2"
+        "gitsense": {
+            "api": "https://192.168.1.2",
+            "secret": "mKAhnHdBYfByJNrvQbdV1Bf5lyXoKnQGTcbM62c2"
+        }
+        "host": {
+            "api": "https://192.168.1.1/api/v3",
+            "secret": "e9c8233e94a7993fd47975f62296a8f68604d3b8"
+        }
     }
 ]
 </pre>
@@ -195,130 +230,18 @@
             <span class="block-title">Rules</span>
         </h3>
         <div class="block block-cell">
-            Note page objects are processed in the order that they are defined.
             <textarea id=page_rules-input class=rules></textarea>
         </div>
     </div>   
 
-    <!--
-    <h2 style="margin-top:20px">
-        Authentication Rules
-    </h2>
-    <div style="width:700px;margin-bottom:10px;">
-        <h3 class="block">
-            <span class="octicon octicon-triangle-right triangle" style="font-size:12px;"></span>
-            <span class="block-title">Description</span>
-        </h3>
-        <div class="block block-body" style="display:none;">
-            <p style="margin-top:0px;">
-                Authentication rules are optional and are only required if you need to 
-                view private Bitbucket/GitHub/GitHub Enterprise repositories with GitSense.<br>
-                <br>
-                <strong>Security</strong><br>
-                GitSense uses GitHub access tokens and Bitbucket team API keys to 
-                verify your repository read permission.&nbsp;
-                And because GitSense only needs to verify your read permission, 
-                your GitHub access token(s) should only contain
-                "repo" scope and nothing more.&nbsp;
-                For Bitbucket API keys, you don't have to worry about this, as they already have 
-                limited access.&nbsp;
-                That is, they can't be used to read/modify your Bitbucket user account.<br>
-                <br>
-                <strong>Authentication object</strong><br>
-            </p>
-            <table>
-                <tr>
-                    <td class=attribute-name>matches</td>
-                    <td class=attribute-desc>
-                        A string containing a URL pattern to match.
-                    </td>
-                </tr>
-                <tr>
-                    <td class=attribute-name>type</td>
-                    <td class=attribute-desc>
-                        A string containing one of the following API types:
-                        <ul>
-                            <li>bitbucket</li>
-                            <li>github</li>
-                            <li>github-enterprise</li>
-                            <li>gitsense</li>
-                        </ul> 
-                    </td>
-                </tr>
-                <tr>
-                    <td class=attribute-name>username</td>
-                    <td class=attribute-desc>
-                        A string containing your Bitbucket/GitHub/GitHub Enterprise username.&nbsp; 
-                        Note a username is not required for GitSense server authentication.
-                    </td>
-                </tr>
-                <tr>
-                    <td class=attribute-name>secret</td>
-                    <td class=attribute-desc>
-                        A string containing your Bitbucket API key or 
-                        GitHub/GitHub Enterprise/GitSense access token.
-                    </td>
-                </tr>
-            </table> 
-        </div>
-        <h3 class="block">
-            <span class="octicon octicon-triangle-right triangle" style="font-size:12px;"></span>
-            <span class="block-title">Examples</span>
-        </h3>
-        <div class="block block-body" style="display:none;">
-            <p style="margin-top:15px;">
-                Below is an example of what the authentication rules will look like, if the user
-                johndohh has a GitHub, GitHub Enterprise (installed on 192.168.1.1 which uses 
-                a private GitSense server installed on 192.168.1.2) and a Bitbucket account:
-            </p>
-<pre style="border:1px solid #ccc;padding:10px;">
-[
-    { 
-        "type": "github",
-        "matches": "https://api.github.com/*", 
-        "username": "jonhdohh",
-        "secret": "9aae8cfc5ad510115654d8b078f6ec85d986e0b8"
-    },
-    {
-        "type": "bitbucket",
-        "matches": "https://api.bitbucket.com/*",
-        "username": "johndohh",
-        "secret": "mgw2iXO06WdqvqR2WeeTBGkypaQDKBQb"
-    },
-    {
-        "type": "github-enterprise",
-        "matches": "https://192.168.1.1/api/v3/*",
-        "username": "johndohh",
-        "secret": "e9c8233e94a7993fd47975f62296a8f68604d3b8"
-    },
-    {
-        "type": "gitsense",
-        "matches": "https://192.168.1.2/*",
-        "secret": "mKAhnHdBYfByJNrvQbdV1Bf5lyXoKnQGTcbM62c2"
-    }
-]
-</pre>
-        </div>
-        <h3 class="block">
-            <span class="octicon octicon-triangle-right triangle" style="font-size:12px;"></span>
-            <span class="block-title">Rules</span>
-        </h3>
-        <div class="block block-body" style="display:none;">
-            Note the order in which the rules are defined is important.
-            <textarea id=auth_rules-input class=rules placeholder="Optional"></textarea>
-        </div>
-    </div> 
-    <br>
-    <div class=reminder>
-        <h3 style="margin-top:0px;">Update manifest.json file</h3>
-        If required, remember to update the <b>permissions</b> and <b>matches</b> value 
-        in the manifest.json file and to reload the extension.
-    </div>
--->
-
     <input class=button id=save-button type=button value="Save" disabled>
     <span id=save-status style="margin-left:5px"></span>
     <div id=save-error class=error style="display:none;"></div>
+    <div class=reminder>
+        <h3 style="margin-top:0px;">Need to update manifest.json file?</h3>
+        If required, remember to update the <b>permissions</b> and <b>matches</b> value 
+        in the manifest.json file and to reload the extension.
+    </div>
 
     <script src="js/arch.js"></script>
     <script src="js/config.js"></script>
