@@ -1,9 +1,11 @@
 sdes.bitbucket.data.repo = function(owner, name) {
     "use strict";
 
-    var _this    = this,
-        v1ApiUrl = sdes.config.bitbucketApiUrl.replace(/\/$/,"")+"/1.0",
-        v2ApiUrl = sdes.config.bitbucketApiUrl.replace(/\/$/,"")+"/2.0";
+    var _this      = this,
+        configUtil = new sdes.utils.config(),
+        apiUrl     = configUtil.getBitbucketApi(),
+        v1ApiUrl   = apiUrl+"/1.0",
+        v2ApiUrl   = apiUrl+"/2.0";
 
     this.get = function(callback) {
         $.ajax({

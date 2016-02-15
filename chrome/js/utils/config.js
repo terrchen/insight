@@ -17,11 +17,15 @@ sdes.utils.config = function() {
         return _this.getRule().type;
     }
 
+    this.getBitbucketApi = function() {
+        return _this.getRule().host.api;
+    }
+
     this.getGitSenseApi = function() {
         return _this.getRule().gitsense.api;
     }
 
-    this.getGitSenseAccessToken = function() {
-        return _this.getRule().gitsense.secret;
+    this.getGitHubApi = function() {
+        return _this.getRule().host.api;
     }
 }

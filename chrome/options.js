@@ -244,6 +244,8 @@ function load() {
                                     return error;
                                 }
 
+                                gitsense.api = gitsense.api.replace(/\/$/,"");
+
                                 break;
                             case "host":
                                 var host = rule[att];
@@ -264,6 +266,8 @@ function load() {
 
                                     return error;
                                 }
+
+                                host.api = host.api.replace(/\/$/,"");
 
                                 break;
                             default:

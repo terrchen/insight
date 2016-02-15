@@ -1,7 +1,7 @@
 sdes.github.data.repo = function(owner, name) {
     "use strict";
 
-    var apiUrl = sdes.config.githubApiUrl;
+    var apiUrl = new sdes.utils.config().getGitHubApi();
 
     this.get = function(callback) {
         $.ajax({
