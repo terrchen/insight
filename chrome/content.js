@@ -21,12 +21,20 @@ initGitSenseConfig(function() {
     
     // Add the function to call whenever there is a location change
     gitsensePageEvent.addOnChange(
-        function (host) {
-            switch (host) {
+        function (rule) {
+            // If rule is null, it means this page didn't match any
+            // rules, so stop
+            if ( rule === null )
+                return;
+                
+            switch (rule.host.type) {
                 case "bitbucket":
                     new sdes.bitbucket.utils.page().parse(renderBitbucketPage);
                     break; 
                 case "github":
+                    new sdes.github.utils.page().parse(renderGitHubPage);
+                    break; 
+                case "github-enterprise":
                     new sdes.github.utils.page().parse(renderGitHubPage);
                     break; 
                 default: 
@@ -40,12 +48,12 @@ initGitSenseConfig(function() {
        
                 switch( page.type ) {
                     case "commits":
-                        currentGitSensePage = new sdes.bitbucket.pages.commits(page);
+                        currentGitSensePage = new sdes.bitbucket.pages.commits(rule, page);
                         currentGitSensePage.render();
     
                         break; 
                     case "overview":
-                        currentGitSensePage = new sdes.bitbucket.pages.overview(page);
+                        currentGitSensePage = new sdes.bitbucket.pages.overview(rule, page);
                         currentGitSensePage.render();
     
                         break;
@@ -60,11 +68,11 @@ initGitSenseConfig(function() {
                     return;
 
                 if ( page.type === "branches" )
-                    new sdes.github.pages.branches(page).render();
+                    new sdes.github.pages.branches(rule, page).render();
                 else if ( page.type === "commits" ) 
-                    new sdes.github.pages.commits(page).render();
+                    new sdes.github.pages.commits(rule, page).render();
                 else if ( page.type === "tree" )
-                    new sdes.github.pages.tree(page).render();
+                    new sdes.github.pages.tree(rule, page).render();
                 else
                     throw("GitSense: Unrecognized GitHub page '"+page.type+"'")
             }

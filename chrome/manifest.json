@@ -13,6 +13,7 @@
     ],
     "content_scripts": [{
         "matches": [
+            "https://192.168.1.75/*",
             "https://bitbucket.org/*", 
             "https://github.com/*"
         ],
@@ -67,7 +68,7 @@
         "run_at":"document_start"
     }],
     "permissions": [
-        "https://192.168.1.71/*",
+        "https://192.168.1.74/*",
         "https://api.github.com/*",
         "https://api.gitsense.com/*",
         "https://bitbucket.org/*",

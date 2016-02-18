@@ -1,8 +1,18 @@
-sdes.github.comp.search = function(page, branchHead, chartsBody, resultsBody, options) {
-    var host     = "github",
+sdes.github.comp.search = function(rule, page, branchHead, chartsBody, resultsBody, options) {
+    "use strict";
+
+    var isEntPage = rule.host.type === "github-enterprise" ? true : false,
+
+        bhdata = 
+            new sdes.gitsense.data.branch.heads(
+                rule.gitsense.hostId,
+                page.owner, 
+                page.repo, 
+                page.branch
+            ),
+
         varUtil  = new sdes.utils.variable(),
         htmlUtil = new sdes.utils.html(),
-        bhdata   = new sdes.gitsense.data.branch.heads(host, page.owner, page.repo, page.branch),
 
         branchHeadLink = "/"+page.owner+"/"+page.repo+"/commit/"+branchHead.head.name,
         pageHeadLink   = "/"+page.owner+"/"+page.repo+"/commit/"+page.head,
@@ -210,8 +220,9 @@ sdes.github.comp.search = function(page, branchHead, chartsBody, resultsBody, op
     
         tabBuilder = new sdes.github.ui.tabs();
 
-        var dotsCls    = "octicon octicon-primitive-dot",
-            dotsStyle  = "font-size:6px; position:relative; top:3px",
+        var top        = isEntPage ? "top:-2px" : "top:3px",
+            dotsCls    = "octicon octicon-primitive-dot",
+            dotsStyle  = "font-size:6px; position:relative;"+top,
             selected,
             tab,
             i;
@@ -437,6 +448,7 @@ sdes.github.comp.search = function(page, branchHead, chartsBody, resultsBody, op
 
         var commitsBuilder = 
             new sdes.github.ui.commits(
+                rule,
                 page.owner,
                 page.repo,
                 matchingCommitsBody.commits
@@ -547,6 +559,7 @@ sdes.github.comp.search = function(page, branchHead, chartsBody, resultsBody, op
 
         var commitsBuilder = 
                 new sdes.github.ui.commits(
+                    rule,
                     page.owner,
                     page.repo,
                     matchingDiffsBody.changes
@@ -737,11 +750,11 @@ sdes.github.comp.search = function(page, branchHead, chartsBody, resultsBody, op
 
         var commitsBuilder = 
                 new sdes.github.ui.commits(
+                    rule,
                     page.owner,
                     page.repo,
                     matchingSourceBody.source,
-                    null,
-                    "Last modified on"
+                    { groupTitlePrefix: "Last modified on" }
                 );
 
         renderedSource = true;
