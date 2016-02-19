@@ -21,7 +21,7 @@ function load() {
 
     var updatedTextArea = false,
 
-        isValidPageType = { 
+        isValidHostType = { 
             "bitbucket": true, 
             "github": true, 
             "github-enterprise": true
@@ -170,7 +170,7 @@ function load() {
                 if ( rules.length === undefined )
                     return "Expected an array but found "+typeof(rules);
 
-                var atts = ["matches", "type", "gitsense", "host" ];
+                var atts = ["matches", "gitsense", "host" ];
 
                 for ( var ruleIdx = 0; ruleIdx < rules.length; ruleIdx++ ) {
                     var rule    = rules[ruleIdx],
@@ -199,6 +199,7 @@ function load() {
                             (att === "gitsense" || att === "host") &&
                             attType !== "object" 
                         ) {
+
                             var error = 
                                 "Expected an object type for the \""+att+"\" attribute "+
                                 "but found a "+attType+" type instead";
@@ -207,67 +208,90 @@ function load() {
                         }
 
                         switch(att) {
-                            case "type":
-                                var pageType = rule[att].toLowerCase();
-
-                                if ( isValidPageType[pageType] === undefined ) {
-                                    var error = 
-                                        pageType+" is not a valid page "+
-                                        "type in rule "+(ruleIdx+1);
-
-                                    return error;
-                                }
-
-                                // We want to store the lowercase value
-                                rule[att] = pageType;
-                                break;
                             case "matches":
                                 // Don't need to do anything else. We just needed
                                 // to know it's a string, which was confirmed earlier.
                                 break;
                             case "gitsense":
-                                var gitsense = rule[att];
+                                var gitsense     = rule[att],
+                                    gitsenseAtts = ["api", "hostId" ];
 
-                                if ( gitsense.api === undefined )  {
-                                    var error = 
-                                        "Missing api attribute in the gitsense object "+
-                                        "in rule "+ruleNum;
+                                for ( var i = 0; i < gitsenseAtts.length; i++ ) {
+                                    var gitsenseAtt = gitsenseAtts[i];
 
-                                    return error;
+                                    if ( gitsense[gitsenseAtt] === undefined )  {
+                                        var error = 
+                                            "Missing gitsense "+gitsenseAtt+" attribute in "+
+                                            "in rule "+ruleNum;
+
+                                        return error;
+                                    }
+
+                                    var type = typeof(gitsense[gitsenseAtt]);
+
+                                    if ( type !== "string" ) {
+                                        var error = 
+                                            "Expected a string value for gitsense "+
+                                            gitsenseAtt+", but found a "+type+" type "+
+                                            "instead in rule "+ruleNum;
+
+                                        return error;
+                                    }
+
+                                    // Remove white spaces and trailing slash
+                                    gitsense[gitsenseAtt] = 
+                                        gitsense[gitsenseAtt]
+                                            .replace(/\s/g,"")
+                                            .replace(/\/$/,"");
                                 }
-
-                                if ( typeof(gitsense.api) !== "string" ) {
-                                    var error = 
-                                        "Expected a string api value, but found a "+
-                                        typeof(gitsense.api)+" type instead in rule "+ruleNum;
-
-                                    return error;
-                                }
-
-                                gitsense.api = gitsense.api.replace(/\/$/,"");
 
                                 break;
                             case "host":
-                                var host = rule[att];
+                                var host     = rule[att],
+                                    hostAtts = ["api", "type" ];
 
-                                if ( host.api === undefined )  {
+                                for ( var i = 0; i < hostAtts.length; i++ ) {
+                                    var hostAtt = hostAtts[i];
+
+                                    if ( host[hostAtt] === undefined )  {
+                                        var error = 
+                                            "Missing host "+hostAtt+" attribute in "+
+                                            "in rule "+ruleNum;
+
+                                        return error;
+                                    }
+
+                                    var type = typeof(host[hostAtt]);
+
+                                    if ( type !== "string" ) {
+                                        var error = 
+                                            "Expected a string value for host "+
+                                            hostAtt+", but found a "+type+" type "+
+                                            "instead in rule "+ruleNum;
+
+                                        return error;
+                                    }
+
+                                    // Remove white spaces and trailing slash
+                                    host[hostAtt] = 
+                                        host[hostAtt]
+                                            .replace(/\s/g,"")
+                                            .replace(/\/$/,"");
+
+                                    if ( hostAtt !== "type" )
+                                        continue;
+
+                                    var hostType = host[hostAtt];
+
+                                    if ( isValidHostType[hostType] !== undefined )
+                                        continue;
+
                                     var error = 
-                                        "Missing api attribute in the host object "+
-                                        "in rule "+ruleNum;
+                                            "Found invalid host type \""+hostType+"\" "+
+                                            "in rule "+ruleNum;
 
                                     return error;
                                 }
-
-                                if ( typeof(host.api) !== "string" ) {
-                                    var error = 
-                                        "Expected a string api value in the host object, "+
-                                        "but found a "+typeof(host.api)+" type instead "+
-                                        "in rule "+ruleNum;
-
-                                    return error;
-                                }
-
-                                host.api = host.api.replace(/\/$/,"");
 
                                 break;
                             default:

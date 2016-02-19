@@ -27,10 +27,10 @@ sdes.events.page = function() {
 
         lastLocation = $.extend(true, {}, window.location);
 
-        var host = configUtil.getHost();
+        var rule = configUtil.getRule();
 
         for ( var i = 0; i < callbackOnChange.length; i++ )
-            callbackOnChange[i](host);
+            callbackOnChange[i](rule);
 
         setTimeout(_this.startTracking, timeout);
     }

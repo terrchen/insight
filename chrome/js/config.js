@@ -6,23 +6,25 @@
 sdes.config = {
     "page_rules" : [ 
         { 
-            "type": "bitbucket", 
             "matches": "https://bitbucket.org/*",
             "host": {
+                "type": "bitbucket",
                 "api": "https://api.bitbucket.org"
             },
             "gitsense": {
-                "api": "https://api.gitsense.com"
+                "api": "https://api.gitsense.com",
+                "hostId": "bitbucket"
             }
         },
         { 
-            "type": "github", 
             "matches": "https://github.com/*",
             "host": {
+                "type": "github",
                 "api": "https://api.github.com"
             },
             "gitsense": {
-                "api": "https://api.gitsense.com"
+                "api": "https://api.gitsense.com",
+                "hostId": "github"
             }
         }
     ]

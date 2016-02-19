@@ -1,10 +1,15 @@
-sdes.github.ui.commits = function(owner, repo, renderTo, groupHeaderOpacity, groupTitlePrefix) {
+sdes.github.ui.commits = function(rule, owner, repo, renderTo, options) {
+    "use strict";
+
     var htmlUtil = new sdes.utils.html(),
         varUtil  = new sdes.utils.variable(),
         ghrepo   = new sdes.github.data.repo(owner, repo),
         commits  = [],
         lastDate,
         orderedList;
+
+    if ( varUtil.isNoU(options) ) 
+        options = {};
 
     this.add = function(commit, options) {
         if ( options === undefined )
@@ -179,9 +184,16 @@ sdes.github.ui.commits = function(owner, repo, renderTo, groupHeaderOpacity, gro
                     cls: "commit-group-title",
                     html: 
                         "<span class='octicon octicon-git-commit'></span>"+
-                        (varUtil.isNoU(groupTitlePrefix) ? "Commits on" : groupTitlePrefix)+" "+date,
+                        (
+                            varUtil.isNoU(options.groupTitlePrefix) ? 
+                                "Commits on" : 
+                                options.groupTitlePrefix
+                        )+" "+date,
                     style: {
-                        opacity: varUtil.isNoU(groupHeaderOpacity) ? null : groupHeaderOpacity,
+                        opacity: 
+                            varUtil.isNoU(options.groupHeaderOpacity) ? 
+                                null : 
+                                options.groupHeaderOpacity,
                     }
                 });
 

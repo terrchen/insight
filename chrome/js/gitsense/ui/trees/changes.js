@@ -1,10 +1,20 @@
-sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, options) {
+sdes.gitsense.ui.trees.changes = function(rule, owner, repo, branch, head, options) {
     "use strict";
 
-    var varUtil  = new sdes.utils.variable(),
+    var isBitbucketPage = rule.host.type.match(/^bitbucket/),
+        isGitHubPage    = rule.host.type.match(/^github/),
+        isGitHubEntPage = rule.host.type === "github-enterprise" ? true  : false,
+
+        bhdata = new sdes.gitsense.data.branch.heads(
+            rule.gitsense.hostId,
+            owner, 
+            repo, 
+            branch
+        ),
+
+        varUtil  = new sdes.utils.variable(),
         dateUtil = new sdes.utils.date(),
         htmlUtil = new sdes.utils.html(),
-        bhdata   = new sdes.gitsense.data.branch.heads(host, owner, repo, branch),
 
         pathToRow    = {},
         renderedPath = {},
@@ -27,57 +37,54 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
         subFolderCls,
 
         textFileCls,
-        plusCls,
-        minusCls,
+        plusCls;
 
-        treeStyle;
+    initStyle();
 
-    this.setStyle = function(name) {
-        treeStyle = name;
- 
-        switch(name) {
-            case "bitbucket":
-                searchCls        = "aui-icon aui-icon-small aui-iconfont-search";
-                triangleDownCls  = "aui-icon aui-icon-small aui-iconfont-expanded";
-                triangleRightCls = "aui-icon aui-icon-small aui-iconfont-collapsed";
-                folderClosedCls  = "aui-icon aui-icon-small aui-iconfont-devtools-folder-closed";
-                folderOpenedCls  = "aui-icon aui-icon-small aui-iconfont-devtools-folder-open";
-                subFolderCls     = "aui-icon aui-icon-small aui-iconfont-devtools-submodule";
-                symlinkFolderCls = "aui-icon aui-icon-small aui-iconfont-sidebar-link";
-                nameLinkCls      = "";
+    function initStyle() {
+        if ( isBitbucketPage )
+            initBitbucket();
+        else 
+            initGitHub();
 
-                plusCls = "aui-icon aui-icon-small aui-iconfont-add";
+        function initBitbucket() {
+            searchCls        = "aui-icon aui-icon-small aui-iconfont-search";
+            triangleDownCls  = "aui-icon aui-icon-small aui-iconfont-expanded";
+            triangleRightCls = "aui-icon aui-icon-small aui-iconfont-collapsed";
+            folderClosedCls  = "aui-icon aui-icon-small aui-iconfont-devtools-folder-closed";
+            folderOpenedCls  = "aui-icon aui-icon-small aui-iconfont-devtools-folder-open";
+            subFolderCls     = "aui-icon aui-icon-small aui-iconfont-devtools-submodule";
+            symlinkFolderCls = "aui-icon aui-icon-small aui-iconfont-sidebar-link";
+            nameLinkCls      = "";
 
-                textFileCls = "aui-icon aui-icon-small aui-iconfont-devtools-file";
+            plusCls = "aui-icon aui-icon-small aui-iconfont-add";
 
-                deletedColor       = "#bbb";
-                folderFontSize     = "18px";
-                deletedFolderColor = deletedColor;
-                regularFolderColor = "#4078c0";
+            textFileCls = "aui-icon aui-icon-small aui-iconfont-devtools-file";
 
-                break;
-            case "github":
-                searchCls        = "octicon octicon-search";
-                triangleDownCls  = "octicon octicon-triangle-down";
-                triangleRightCls = "octicon octicon-triangle-right";
-                folderClosedCls  = "octicon octicon-file-directory";
-                folderOpenedCls  = "";
-                subFolderCls     = "octicon octicon-file-submodule";
-                symlinkFolderCls = "octicon octicon-file-symlink-directory";
-                nameLinkCls      = "js-directory-link js-navigation-open";
+            deletedColor       = "#bbb";
+            folderFontSize     = "18px";
+            deletedFolderColor = deletedColor;
+            regularFolderColor = "#4078c0";
+        }
 
-                plusCls = "octicon octicon-plus";
+        function initGitHub() {
+            searchCls        = "octicon octicon-search";
+            triangleDownCls  = "octicon octicon-triangle-down";
+            triangleRightCls = "octicon octicon-triangle-right";
+            folderClosedCls  = "octicon octicon-file-directory";
+            folderOpenedCls  = "";
+            subFolderCls     = "octicon octicon-file-submodule";
+            symlinkFolderCls = "octicon octicon-file-symlink-directory";
+            nameLinkCls      = "js-directory-link js-navigation-open";
 
-                textFileCls = "octicon octicon-file-text";
+            plusCls = "octicon octicon-plus";
 
-                deletedColor       = "#bbb";
-                folderFontSize     = "18px";
-                deletedFolderColor = deletedColor;
-                regularFolderColor = "#4078c0";
+            textFileCls = "octicon octicon-file-text";
 
-                break;
-            default:
-                throw("GitSense Error: Unrecognized font type '"+name+"'");
+            deletedColor       = "#bbb";
+            folderFontSize     = "18px";
+            deletedFolderColor = deletedColor;
+            regularFolderColor = "#4078c0";
         }
     }
 
@@ -159,6 +166,8 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
             var path      = getPath(params.dir, kid.name),
                 fontColor = kid.deleted ? deletedColor : null,
 
+                triangleTop = isBitbucketPage ? "2px" : isGitHubEntPage ? "-1px" : "3px",
+
                 triangle = 
                     htmlUtil.createIcon({
                         cls: triangleRightCls,
@@ -167,7 +176,7 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
                             textAlign: "center",
                             fontSize: "14px",
                             position: "relative",
-                            top: treeStyle === "bitbucket"? "2px" : "3px",
+                            top: triangleTop,
                             color: fontColor,
                             display: showTriangle ? null : "none"
                         }
@@ -184,6 +193,8 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
                         }
                     }),
 
+                nameTop = isBitbucketPage ? "2px" : isGitHubEntPage ? "0px" : "4px",
+
                 name = 
                     htmlUtil.createLink({
                         cls: nameLinkCls,
@@ -192,7 +203,7 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
                             cursor: "pointer",
                             color: fontColor,
                             position: "relative",
-                            top: treeStyle === "bitbucket" ? "2px" : "4px"
+                            top: nameTop
                         }
                     }),
 
@@ -275,6 +286,8 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
                         }
                     }),
 
+                nameTop = isBitbucketPage ? "2px" : isGitHubEntPage ? "0px" : "4px",
+
                 name = 
                     htmlUtil.createLink({
                         text: kid.name,
@@ -282,7 +295,7 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
                             color: fontColor,
                             cursor: "pointer",
                             position: "relative",
-                            top: treeStyle === "bitbucket" ? "2px" : "4px"
+                            top: nameTop
                         }
                     }),
 
@@ -524,7 +537,7 @@ sdes.gitsense.ui.trees.changes = function(host, owner, repo, branch, head, optio
             function getTitle() {
                 var href = 
                         "/"+owner+"/"+repo+"/commit"+
-                        ( host === "github" ? "" : "s")+
+                        ( isGitHubPage ? "" : "s")+
                         "/"+commit.name,
                     link = 
                         htmlUtil.createLink({
