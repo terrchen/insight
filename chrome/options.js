@@ -286,7 +286,7 @@ function load() {
                 errorBody.innerHTML = 
                     "<strong>Error</strong><br>"+
                     "<pre style='white-space:pre-wrap;line-height:1.5'>"+
-                        message+" in \""+rule+"\"</pre>";
+                        message+" in \""+rules+"\"</pre>";
             }
         }
     }
