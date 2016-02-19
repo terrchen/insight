@@ -1,6 +1,6 @@
 var gitsenseOverviewPageStartTime;
 
-sdes.bitbucket.pages.overview = function(page) {
+sdes.bitbucket.pages.overview = function(rule, page) {
     "use strict";
 
     gitsenseOverviewPageStartTime = new Date().getTime();
@@ -47,7 +47,7 @@ sdes.bitbucket.pages.overview = function(page) {
         }
 
         function getBranchHead() {
-            var bdata = new sdes.bitbucket.data.repo( page.owner, page.repo);
+            var bdata = new sdes.bitbucket.data.repo(page.owner, page.repo);
 
             bdata.getBranchesAndTags(function(_branchesAndTags, error) {
                 if ( error !== undefined )

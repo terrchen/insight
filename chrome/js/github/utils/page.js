@@ -59,7 +59,7 @@ sdes.github.utils.page = function() {
             // "x" milliseconds to see if we have enough information to continue
             // and give up after "x" milliseconds of testing.
             var sleep  = 50,
-                stopAt = new Date().getTime() + 2000; // Give up after 2 seconds
+                stopAt = new Date().getTime() + 5000; // Give up after 2 seconds
  
             wait(stopAt);
 
@@ -401,7 +401,6 @@ sdes.github.utils.page = function() {
                             type === "tree" || type === "tag" ? 
                                 null : value : 
                             gitsenseBranch;
-
 
                 callback({
                     type: page,
