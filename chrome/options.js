@@ -77,7 +77,7 @@ function load() {
                         var currentJson = JSON.stringify(localConfig[key]);
                         var thisJson    = JSON.stringify(rules);
 
-                        if ( currentJson === thisJson ) 
+                        if ( currentJson === thisJson )
                             continue;
 
                         break;
