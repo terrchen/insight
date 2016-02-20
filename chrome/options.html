@@ -98,25 +98,26 @@
         .options { float: right; }
         .option { cursor: pointer; font-size: 20px; color: #555;}
         .option:hover { color: #4183c4; }
+        .restore { float: right; font-size: 12px; cursor: pointer; }
+        .restore:hover { color: #4183c4; }
     </style> 
     <link rel="stylesheet" type="text/css" href="3rdparty/octicons/octicons.css"> 
 </head>
 <body>
-    <h1>GitSense Configuration</h1>
+    <div style="width:765px">
+        <h1>GitSense Configuration</h1>
 
-    <h2>
-        Page Rules
-    </h2>
-    <div id=pageRules style="width:765px; margin-bottom:10px;"></div> 
-    <input class=button id=new-rule-button type=button value="Add new rule">
-    <input class=button id=save-button type=button value="Save changes" disabled>
-    <span id=save-status style="margin-left:5px"></span>
-    <div id=save-error class=error style="display:none;"></div>
-    <div class=reminder>
-        <h3 style="margin-top:0px;">Need to update manifest.json file?</h3>
-        If required, remember to update the <b>permissions</b> and <b>matches</b> value 
-        in the manifest.json file and to reload the extension.
-    </div>
+        <h2>
+            Page Rules
+        </h2>
+        <div id=pageRules style="margin-bottom:10px;"></div> 
+        <input class=button id=new-rule-button type=button value="Add new rule">
+        <input class=button id=save-button type=button value="Save changes" disabled>
+        <span id=save-status style="margin-left:5px"></span>
+        <a id=restore class=restore>Restore default settings</a>
+        <div style="clear:both"></div>
+        <div id=save-error class=error style="display:none;"></div>
+    </div> 
 
     <script src="3rdparty/js/jquery-2.1.4.min.js"></script>
     <script src="js/arch.js"></script>

@@ -12,14 +12,18 @@ function load() {
     // The save button is defined in the options.html file
     var saveButton    = document.getElementById("save-button"),
         saveErrorBody = document.getElementById("save-error"),
-        newRuleButton = document.getElementById("new-rule-button");
+        newRuleButton = document.getElementById("new-rule-button"),
+        restoreLink   = document.getElementById("restore");
 
-    var hostTypes    = [ "", "bitbucket", "github", "github-enterprise" ],
-        htmlUtil     = new sdes.utils.html(),
-        idToInput    = {},
-        ruleToInputs = {};
+    var hostTypes = [ "", "bitbucket", "github", "github-enterprise" ],
+        htmlUtil  = new sdes.utils.html();
+
+    restoreLink.onclick = restoreDefault;
 
     function update(localConfig) {
+        var idToInput    = {},
+            ruleToInputs = {};
+
         for ( var key in localConfig ) {
             if ( key === "pageRules" )
                 renderRules(key, localConfig[key]);
@@ -336,6 +340,8 @@ function load() {
                         default:
                             throw("Unrecognized action '"+action+"'");
                     }
+
+                    check();
                 }
             }
 
@@ -363,8 +369,8 @@ function load() {
 
             function check() {
                 for ( var i = 0; i < rules.length; i++ ) {
-                    var id   = "rule-"+i,
-                        rule = rules[i];
+                    var id     = "rule-"+i,
+                        rule   = rules[i];
 
                     if ( rule.deleted ) {
                         enableSave();
@@ -413,11 +419,23 @@ function load() {
                         }
                     }
                 }
+   
+                // See if the order has changed
+                var bodies = document.getElementsByClassName("rule");
+
+                for ( var i = 0; i < bodies.length; i++ ) {
+                    var idx = parseInt(bodies[i].id.split("-")[1]);
+
+                    if ( i === idx )
+                        continue;
+
+                    enableSave();
+                    return;
+                }
 
                 saveButton.style.cursor = "default";
                 saveButton.disabled = true;
                 saveButton.onclick = null;
-
 
                 function enableSave() {
                     saveButton.style.cursor = "pointer";
@@ -599,14 +617,14 @@ function load() {
                                             showError(input);
 
                                             errors.push(
-                                                "Missing required "+key+" "+hostKey+" value "+
+                                                "Missing required "+key+" "+gitsenseKey+" value "+
                                                 "in rule "+ruleNum
                                             ); 
 
                                             continue;
                                         }
 
-                                        if ( hostKey === "api" && ! value.match(/^https*:\/\//) ) {
+                                        if ( gitsenseKey === "api" && ! value.match(/^https*:\/\//) ) {
                                             showError(input);
 
                                             errors.push(
@@ -709,6 +727,23 @@ function load() {
         function clean(str) {
             return str.replace(/\s/g, "");
         }
+    }
+
+    function restoreDefault() {
+        if ( ! window.confirm("Are you sure") ) 
+            return;
+
+        var keys = [];
+
+        for ( var key in sdes.config )
+            keys.push(key);
+   
+        chrome.storage.local.remove(
+            keys,
+            function() {
+                update(sdes.config);
+            }
+        ) 
     }
 }
 
