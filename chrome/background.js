@@ -42,7 +42,6 @@ var requiredGitSenseJSFiles = [
         "js/gitsense/ui/trees/changes.js",
         "content.js"
     ],
-
     requiredGitSenseCSSFiles = [
         "3rdparty/css/dc-1.7.5.min.css",
         "3rdparty/octicons/octicons.css"

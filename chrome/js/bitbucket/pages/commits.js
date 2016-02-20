@@ -1,6 +1,6 @@
 var gitsenseCommitsPageStartTime;
 
-sdes.bitbucket.pages.commits = function(page) {
+sdes.bitbucket.pages.commits = function(rule, page) {
     "use strict";
 
     gitsenseCommitsPageStartTime = new Date().getTime();
@@ -701,7 +701,7 @@ sdes.bitbucket.pages.commits = function(page) {
 
                 revsTree = 
                     new sdes.gitsense.ui.trees.changes(
-                        host,
+                        rule,
                         page.owner,
                         page.repo,
                         page.branch,
@@ -712,8 +712,6 @@ sdes.bitbucket.pages.commits = function(page) {
                             showSearchPlus: true
                         }
                     );
-    
-            revsTree.setStyle("bitbucket");
     
             revsTree.render("", "tree", changesBody);
     

@@ -4,27 +4,35 @@
 // See options.html and options.js for more information
 //
 sdes.config = {
-    "page_rules" : [ 
+    "pageRules" : [ 
         { 
             "matches": "https://bitbucket.org/*",
             "host": {
                 "type": "bitbucket",
-                "api": "https://api.bitbucket.org"
+                "api": "https://api.bitbucket.org",
+                "username": "",
+                "secret": ""
             },
             "gitsense": {
                 "api": "https://api.gitsense.com",
-                "hostId": "bitbucket"
+                "hostId": "bitbucket",
+                "secret": "",
+                "commitDecorator": ""
             }
         },
-        { 
+        {
             "matches": "https://github.com/*",
             "host": {
                 "type": "github",
-                "api": "https://api.github.com"
+                "api": "https://api.github.com",
+                "username": "",
+                "secret": ""
             },
             "gitsense": {
                 "api": "https://api.gitsense.com",
-                "hostId": "github"
+                "hostId": "github",
+                "secret": "",
+                "commitDecorator": ""
             }
         }
     ]

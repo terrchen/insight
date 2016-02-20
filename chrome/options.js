@@ -3,10 +3,6 @@
 // The DOMContentLoaded event is defined at the bottom of this script and is what
 // triggers this function.
 function load() {
-    // The following function will make the blocks in the options.html
-    // page collapsible/expandable
-    setupBlocks();
-
     // Get the locally stored settings.  If nothing is stored
     // locally, the current values that are defined by sdes.config
     // will be used.  Take a look at the js/config.js file to see
@@ -14,330 +10,704 @@ function load() {
     chrome.storage.local.get(sdes.config, update);
 
     // The save button is defined in the options.html file
-    var saveButton = document.getElementById("save-button");
+    var saveButton    = document.getElementById("save-button"),
+        saveErrorBody = document.getElementById("save-error"),
+        newRuleButton = document.getElementById("new-rule-button");
 
-    if ( saveButton === null )
-        throw("GitSense: Save button does not exist");
-
-    var updatedTextArea = false,
-
-        isValidHostType = { 
-            "bitbucket": true, 
-            "github": true, 
-            "github-enterprise": true
-        };
+    var hostTypes    = [ "", "bitbucket", "github", "github-enterprise" ],
+        htmlUtil     = new sdes.utils.html(),
+        idToInput    = {},
+        ruleToInputs = {};
 
     function update(localConfig) {
-        for ( var key in localConfig ) 
-            set(key, localConfig[key]);
-
-        updatedTextArea = true;
-
-        function set(key, value) {
-            var input = document.getElementById(key+"-input");
-
-            // input == null means the value that is defined by
-            // sdes.config.<key> can't be updated
-           
-            if ( input === null )
-                return;
-
-            input.value = 
-                value.length === 0 ? 
-                    "" : 
-                    JSON.stringify(value, null, 2);
-
-            input.onkeyup = check;
-
-            if ( updatedTextArea )
-                return;
-
-            input.autocorrect = input.autocomplete = input.autocapitalize = input.spellcheck = false; 
+        for ( var key in localConfig ) {
+            if ( key === "pageRules" )
+                renderRules(key, localConfig[key]);
+            else
+                set(key, localConfig[key]);
         }
 
-        function check() {
-            var same = true;
+        function renderRules(renderTo, rules) {
+            var renderToBody = document.getElementById(renderTo);
 
-            for ( var key in localConfig )  {
-                var input = document.getElementById(key+"-input");
+            if ( renderToBody === null )
+                throw("No element with the id '"+renderTo+"' found");
 
-                if ( input === null )
-                    continue;
+            $(renderToBody).html("");
 
-                switch(key) {
-                    case "page_rules":
-                        var rules = null;
+            for ( var i = 0; i < rules.length; i++ )
+                addRule("rule-"+i, rules[i], false);
 
-                        try {
-                            rules = JSON.parse(input.value);
-                        } catch ( e ) {
-                            continue;
-                        }
+            setupEvents();
 
-                        var currentJson = JSON.stringify(localConfig[key]);
-                        var thisJson    = JSON.stringify(rules);
+            check();
 
-                        if ( currentJson === thisJson )
-                            continue;
+            newRuleButton.onclick = clickedAdd; 
 
-                        break;
-                    default:
-                        throw("Unrecognized key '"+key+"'");
+            function addRule(id, rule, expand) {
+                var direction = expand ? "down" : "right",
+                    display   = expand ? "" : "display:none",
+
+                    html =
+                        "<div class=row>"+
+                            "<input id="+id+"-matches type=text "+
+                                "placeholder='URL match pattern' "+
+                                "value='"+rule.matches+"' "+
+                                "style='width:645px;'>"+
+                            "<span class='options'>"+
+                                "<span id="+id+"-option-down "+
+                                    "class='octicon octicon-arrow-down option' "+
+                                    "style='margin-right:10px;font-size:20px;'></span>"+
+                                "<span id="+id+"-option-up "+
+                                    "class='octicon octicon-arrow-up option' "+
+                                    "style='margin-right:10px;font-size:20px;'></span>"+
+                                "<span id="+id+"-option-delete "+
+                                    "class='octicon octicon-x option' "+
+                                    "style='font-weight:bold;font-size:17px;'></span>"+
+                            "</sapn>"+
+                        "</div>"+
+                        "<div style='clear:both'></div>"+
+                        getHostSettings()+
+                        getGitSenseSettings(),
+
+                    div = htmlUtil.createDiv({
+                        id: id,
+                        html: html,
+                        cls: "rule"
+                    });
+
+                renderToBody.appendChild(div);
+
+                function getHostTypes() {
+                    var html = "<select id="+id+"-host-type>";
+
+                    for ( var i = 0; i < hostTypes.length; i++ ) {
+                        var type     = hostTypes[i],
+                            selected = type === rule.host.type ? "selected" : "";
+
+                        html += "<option "+selected+">"+type+"</option>";
+                    }
+
+                    html += "</select>";
+
+                    return html;
                 }
 
-                same = false;
-                break;
+                function getHostSettings() {
+                    var html =
+                        "<div class='block block-header'>"+
+                            "<span id="+id+"-host-triangle "+
+                                "class='triangle octicon octicon-triangle-"+direction+"'></span>"+
+                            "<span id="+id+"-host-title "+
+                                "class='block-name'>Host settings</span>"+
+                        "</div>"+
+                        "<div class='block block-body' style='"+display+"'>"+
+                            "<table>"+
+                                "<tr>"+
+                                    "<td class=field-cell>Type</td>"+
+                                    "<td class=field-cell>API</td>"+
+                                    "<td class=field-cell>Username</td>"+
+                                    "<td class=field-cell>Access token / API key</td>"+
+                                "</tr>"+
+                                "<tr>"+
+                                    "<td class=field-cell>"+getHostTypes()+"</td>"+
+                                    "<td class=field-cell>"+
+                                        "<input type=text "+
+                                            "id="+id+"-host-api "+
+                                            "value='"+rule.host.api+"' "+
+                                            "style='width:200px'>"+
+                                    "</td>"+
+                                    "<td class=field-cell>"+
+                                        "<input type=text "+
+                                            "id="+id+"-host-username "+
+                                            "value='"+rule.host.username+"' "+
+                                            "placeholder=Optional "+
+                                            "style='width:100px;'>"+
+                                    "</td>"+
+                                    "<td class=field-cell style='padding-right:0px;'>"+
+                                        "<input type=text "+
+                                            "id="+id+"-host-secret "+
+                                            "value='"+rule.host.secret+"' "+
+                                            "placeholder=Optional "+
+                                            "style='width:200px;'>"+
+                                    "</td>"+
+                                "</tr>"+
+                            "</table>"+
+                        "</div>";
+
+                    return html;
+                }
+
+                function getGitSenseSettings() {
+                    var html =
+                        "<div class='block block-header'>"+
+                            "<span id="+id+"-gitsense-triangle "+
+                                "class='triangle octicon octicon-triangle-"+direction+"'></span>"+
+                            "<span id="+id+"-gitsense-title "+
+                                "class='block-name'>GitSense settings</span>"+
+                        "</div>"+
+                        "<div class='block block-body' style='"+display+"'>"+
+                            "<table>"+
+                                "<tr>"+
+                                    "<td class=field-cell>Host identifier</td>"+
+                                    "<td class=field-cell>API</td>"+
+                                    "<td class=field-cell>Access token</td>"+
+                                "</tr>"+
+                                "<tr>"+
+                                    "<td class=field-cell>"+
+                                        "<input type=text "+
+                                            "id="+id+"-gitsense-hostId "+
+                                            "value='"+rule.gitsense.hostId+"' "+
+                                            "style='width:100px'>"+
+                                    "</td>"+
+                                    "<td class=field-cell>"+
+                                        "<input type=text "+
+                                            "id="+id+"-gitsense-api "+
+                                            "value='"+rule.gitsense.api+"' "+
+                                            "style='width:200px'>"+
+                                    "</td>"+
+                                    "<td class=field-cell style='padding-right:0px;'>"+
+                                        "<input type=text "+
+                                            "id="+id+"-gitsense-secret "+
+                                            "value='"+rule.gitsense.secret+"' "+
+                                            "placeholder=Optional "+
+                                            "style='width:350px;'>"+
+                                    "</td>"+
+                                "</tr>"+
+                            "</table>"+
+                            "<div style='padding-top:10px;padding-bottom:5px;'>"+
+                                "Commit decorator"+
+                            "</div>"+
+                            "<input type=text "+
+                                "id="+id+"-gitsense-commitDecorator "+
+                                "value='"+rule.gitsense.commitDecorator+"' "+
+                                "placeholder=Optional "+
+                                "style='width:722px;padding-right:0px;'>"+
+                        "</div>";
+                    return html;
+                }
             }
 
-            if ( same ) {
-                saveButton.style.cursor = "default";
-                saveButton.disabled     = true;
-                saveButton.onclick      = null;
-            } else {
-                saveButton.style.cursor = "pointer";
-                saveButton.disabled     = false;
-                saveButton.onclick      = save;
-            }
-        }
+            function setupEvents() {
+                var elems   = document.getElementsByClassName("block"),
+                    options = ["up", "down", "delete"];
 
-        function save() {
-            var newConfig  = {},
-                changedUrl = false,
-                statusBody = document.getElementById("save-status"),
-                errorBody  = document.getElementById("save-error");
-        
-            statusBody.textContent   = "Saving ...";
-            statusBody.style.display = null;
+                for ( var i = 0; i < elems.length; i++ ) {
+                    var header = elems[i++];
+                    var body   = elems[i];
 
-            for ( var key in sdes.config ) {
-                var input = document.getElementById(key+"-input");
-        
-                if ( input === null ) {
-                    newConfig[key] = sdes.config[key];
-                    continue;
+                    setupBlock(header, body);
                 }
 
-                switch ( key )  {
-                    case "page_rules": 
-                        var rules = getPageRules(input.value);
+                for ( var i = 0; i < rules.length; i++ ) {
+                    var rule = rules[i],
+                        id   = "rule-"+i;
 
-                        if ( typeof(rules) === "string" ) {
-                            renderError("page rules", rules);
-                            return;
-                        }
+                    if ( ruleToInputs[id] !== undefined )
+                        continue;
 
-                        newConfig[key] = rules;
-                        break;
-                    default:
-                        throw("Unrecognized key '"+key+"'");
-                }
-            }
+                    ruleToInputs[id] = getInputs(id, rule);
 
-            errorBody.style.display = "none";
-       
-            chrome.storage.local.set(
-                newConfig,
-                function() {
-                    statusBody.textContent = "Saved";
-                    document.getElementsByClassName("reminder")[0].style.display = "block";
-        
-                    setTimeout(
-                        function() { 
-                            statusBody.textContent   = ""; 
-                            statusBody.style.display = "none";
-                            saveButton.disabled  = true;
-                            update(newConfig);
-                        }, 
-                        750
-                    ); 
-                }
-            );
+                    for ( var j = 0; j < options.length; j++ ) {
+                        var thisId = id+"-option-"+options[j];
 
-            function getPageRules(json) {
-                json = json.replace(/^\s+/,"").replace(/\s+$/,"");
-
-                if (json === "" )
-                    return "No rules found";
-
-                var rules = null;
-
-                try {
-                    rules = JSON.parse(json);
-                } catch ( e ) {
-                    return e.message;
+                        document.getElementById(thisId).onclick = clickedOption;
+                    }
                 }
 
-                if ( rules.length === undefined )
-                    return "Expected an array but found "+typeof(rules);
+                function getInputs(id, rule) {
+                    var inputs = {};
 
-                var atts = ["matches", "gitsense", "host" ];
-
-                for ( var ruleIdx = 0; ruleIdx < rules.length; ruleIdx++ ) {
-                    var rule    = rules[ruleIdx],
-                        ruleNum = ruleIdx + 1;
-  
-                    for ( var attIdx = 0; attIdx < atts.length; attIdx++ ) {
-                        var att = atts[attIdx];
-
-                        if ( rule[att] === undefined )
-                            return "Missing \""+att+"\" attribute in rule "+ruleNum;
-
-                        var attType = typeof(rule[att]);
-
-                        if ( 
-                            (att === "type" || att === "matches") &&
-                            attType !== "string" 
-                        ) {
-                            var error = 
-                                "Expected a string value for the \""+att+"\" attribute "+
-                                "but found a "+attType+" type instead in rule "+ruleNum;
-
-                            return error;
-                        }
-
-                        if ( 
-                            (att === "gitsense" || att === "host") &&
-                            attType !== "object" 
-                        ) {
-
-                            var error = 
-                                "Expected an object type for the \""+att+"\" attribute "+
-                                "but found a "+attType+" type instead";
-
-                            return error;
-                        }
-
-                        switch(att) {
+                    for ( var key in rule ) {
+                        switch( key ) {
                             case "matches":
-                                // Don't need to do anything else. We just needed
-                                // to know it's a string, which was confirmed earlier.
-                                break;
-                            case "gitsense":
-                                var gitsense     = rule[att],
-                                    gitsenseAtts = ["api", "hostId" ];
+                                var thisId = id+"-"+key,
+                                    input  = document.getElementById(thisId);
 
-                                for ( var i = 0; i < gitsenseAtts.length; i++ ) {
-                                    var gitsenseAtt = gitsenseAtts[i];
+                                idToInput[thisId] = input;
 
-                                    if ( gitsense[gitsenseAtt] === undefined )  {
-                                        var error = 
-                                            "Missing gitsense "+gitsenseAtt+" attribute in "+
-                                            "in rule "+ruleNum;
+                                inputs[key]        = input;
+                                input.onkeyup      = check;
+                                input.currentValue = rule[key];
+                                
+                                continue;
+                            case "host":
+                                for ( var hostKey in rule[key] ) {
+                                    var hostId = id+"-host-"+hostKey,
+                                        input  = document.getElementById(hostId);
 
-                                        return error;
-                                    }
+                                    inputs[key+"-"+hostKey] = input;
 
-                                    var type = typeof(gitsense[gitsenseAtt]);
+                                    idToInput[hostId] = input;
 
-                                    if ( type !== "string" ) {
-                                        var error = 
-                                            "Expected a string value for gitsense "+
-                                            gitsenseAtt+", but found a "+type+" type "+
-                                            "instead in rule "+ruleNum;
+                                    if ( hostKey === "type" )
+                                        input.onchange = check;
+                                    else
+                                        input.onkeyup = check;
 
-                                        return error;
-                                    }
-
-                                    // Remove white spaces and trailing slash
-                                    gitsense[gitsenseAtt] = 
-                                        gitsense[gitsenseAtt]
-                                            .replace(/\s/g,"")
-                                            .replace(/\/$/,"");
+                                    input.currentValue = rule[key][hostKey];
                                 }
 
-                                break;
-                            case "host":
-                                var host     = rule[att],
-                                    hostAtts = ["api", "type" ];
+                                continue;
+                            case "gitsense":
+                                for ( var gitsenseKey in rule[key] ) {
+                                    var gitsenseId = id+"-gitsense-"+gitsenseKey,
+                                        input      = document.getElementById(gitsenseId);
 
-                                for ( var i = 0; i < hostAtts.length; i++ ) {
-                                    var hostAtt = hostAtts[i];
+                                    idToInput[gitsenseId] = input;
 
-                                    if ( host[hostAtt] === undefined )  {
-                                        var error = 
-                                            "Missing host "+hostAtt+" attribute in "+
-                                            "in rule "+ruleNum;
+                                    inputs[key+"-"+gitsenseKey] = input;
 
-                                        return error;
-                                    }
-
-                                    var type = typeof(host[hostAtt]);
-
-                                    if ( type !== "string" ) {
-                                        var error = 
-                                            "Expected a string value for host "+
-                                            hostAtt+", but found a "+type+" type "+
-                                            "instead in rule "+ruleNum;
-
-                                        return error;
-                                    }
-
-                                    // Remove white spaces and trailing slash
-                                    host[hostAtt] = 
-                                        host[hostAtt]
-                                            .replace(/\s/g,"")
-                                            .replace(/\/$/,"");
-
-                                    if ( hostAtt !== "type" )
-                                        continue;
-
-                                    var hostType = host[hostAtt];
-
-                                    if ( isValidHostType[hostType] !== undefined )
-                                        continue;
-
-                                    var error = 
-                                            "Found invalid host type \""+hostType+"\" "+
-                                            "in rule "+ruleNum;
-
-                                    return error;
+                                    input.onkeyup      = check;
+                                    input.currentValue = rule[key][gitsenseKey];
                                 }
 
                                 break;
                             default:
-                                throw("Unrecognized attribute '"+att+"'");
+                                throw("Unrecognized key '"+key+"'");
+                        }
+                    }
+                    
+                    return inputs;
+                }
+
+                function setupBlock(header, body) {
+                    var triangle = header.children[0],
+                        title    = header.children[1];
+
+                    title.onclick = function() {
+                        if ( triangle.className.match(/down/) ) {
+                            body.style.display = "none";
+                            triangle.setAttribute("class", triangle.className.replace(/down/, "right"));
+                        } else {
+                            body.style.display = "block";
+                            triangle.setAttribute("class", triangle.className.replace(/right/, "down"));
                         }
                     }
                 }
 
-                return rules;
-            }
+                function clickedOption() {
+                    var temp     = this.id.split("-"),
+                        thisIdx  = parseInt(temp[1]),
+                        thisId   = temp[0]+"-"+temp[1],
+                        thisBody = document.getElementById(thisId),
+                        action   = temp.pop(),
+                        rule     = rules[thisIdx];
 
-            function renderError(rules, message) {
-                statusBody.style.display = "none";
-                errorBody.style.display = "block";
-    
-                errorBody.innerHTML = 
-                    "<strong>Error</strong><br>"+
-                    "<pre style='white-space:pre-wrap;line-height:1.5'>"+
-                        message+" in \""+rules+"\"</pre>";
-            }
-        }
-    }
+                    if ( action === "delete" ) {
+                        rule.deleted = true;
+                        thisBody.parentNode.removeChild(thisBody);
+                        check();
+                        return;
+                    }
 
-    function setupBlocks(){ 
-        var elems = document.getElementsByClassName("block");
+                    var bodies = document.getElementsByClassName("rule"),
+                        pos;
 
-        for ( var i = 0; i < elems.length; i++ ) {
-            var header = elems[i++];
-            var body   = elems[i];
+                    if ( bodies.length === 1 )
+                        return;
 
-            init(header,body);
-        }
+                    for ( var i = 0; i < bodies.length; i++ ) {
+                        var body = bodies[i];
+                       
+                        if ( thisId === body.id )
+                            pos = i; 
+                    }
 
-        function init(header, body) {
-            var triangle = header.children[0],
-                title    = header.children[1];
+                    var above = pos === 0 ? null : bodies[pos - 1],
+                        below = pos === bodies.length - 1 ? null : bodies[pos + 1],
+                        me    = $(thisBody).detach();
 
-            title.onclick = function() {
-                if ( triangle.className.match(/down/) ) {
-                    body.style.display = "none";
-                    triangle.setAttribute("class", triangle.className.replace(/down/, "right"));
-                } else {
-                    body.style.display = "block";
-                    triangle.setAttribute("class", triangle.className.replace(/right/, "down"));
+                    switch (action) {
+                        case "up":
+                            if ( above === null ) 
+                                me.appendTo(renderToBody);
+                            else 
+                                $(me).insertBefore(above);
+
+                            break;
+                        case "down":
+                            if ( below === null ) 
+                                $(me).insertBefore(above);
+                            else
+                                me.appendTo(renderToBody);
+
+                            break;
+                        default:
+                            throw("Unrecognized action '"+action+"'");
+                    }
                 }
             }
+
+            function set(key, value) {
+                var input = document.getElementById(key+"-input");
+
+                // input == null means the value that is defined by
+                // sdes.config.<key> can't be updated
+               
+                if ( input === null )
+                    return;
+
+                input.value = 
+                    value.length === 0 ? 
+                        "" : 
+                        JSON.stringify(value, null, 2);
+
+                input.onkeyup = check;
+
+                if ( updatedTextArea )
+                    return;
+
+                input.autocorrect = input.autocomplete = input.autocapitalize = input.spellcheck = false; 
+            }
+
+            function check() {
+                for ( var i = 0; i < rules.length; i++ ) {
+                    var id   = "rule-"+i,
+                        rule = rules[i];
+
+                    if ( rule.deleted ) {
+                        enableSave();
+                        return;
+                    }
+
+                    for ( var key in rule ) {
+                        switch( key ) {
+                            case "matches":
+                                var thisId = id+"-"+key,
+                                    input  = idToInput[thisId];
+
+                                if ( input.currentValue === clean(input.value) )
+                                    continue;
+
+                                enableSave();
+                                return;
+                            case "host":
+                                for ( var hostKey in rule[key] ) {
+                                    var hostId = id+"-host-"+hostKey,
+                                        input  = idToInput[hostId];
+
+                                    if ( input.currentValue === clean(input.value) )
+                                        continue;
+
+                                    enableSave();
+                                    return;
+                                }
+
+                                continue;
+                            case "gitsense":
+                                for ( var gitsenseKey in rule[key] ) {
+                                    var gitsenseId = id+"-gitsense-"+gitsenseKey,
+                                        input      = idToInput[gitsenseId];
+
+                                    if ( input.currentValue === clean(input.value) )
+                                        continue;
+
+                                    enableSave();
+                                    return;
+                                } 
+
+                                continue;
+                            default:
+                                throw("Unrecognized key '"+key+"'");
+                        }
+                    }
+                }
+
+                saveButton.style.cursor = "default";
+                saveButton.disabled = true;
+                saveButton.onclick = null;
+
+
+                function enableSave() {
+                    saveButton.style.cursor = "pointer";
+                    saveButton.disabled = false;
+                    saveButton.onclick  = clickedSave;
+                }
+            }
+
+            function clickedSave() {
+                $(saveErrorBody).hide();
+
+                var newRules = getPageRules();
+
+                if ( newRules === null )
+                    return;
+
+                var newConfig = { pageRules: newRules };
+
+                chrome.permissions.getAll(function(all) {
+                    var newOrigins  = mapOrigins(newRules),
+                        currOrigins = {},
+                        currPerms   = {},
+                        addOrigins  = [],
+                        rmOrigins   = [];
+
+                    for ( var i = 0; i < all.origins.length; i++ ) {
+                        var origin = all.origins[i];
+
+                        currOrigins[origin] = "";
+                    }
+
+                    for ( var i = 0; i < all.origins.permissions; i++ ) {
+                        var perm = all.permissions[i];
+
+                        if ( perm === "storage" )
+                            continue;
+
+                        currPerms[perm] = "";
+                    }
+
+                    for ( var origin in newOrigins ) {
+                        if ( currOrigins[origin] === undefined )
+                            addOrigins.push(origin);
+                    }
+
+                    if ( addOrigins.length === 0 ) {
+                        save();
+                        return;
+                    }
+
+                    if ( addOrigins.length !== 0 ) {
+                        chrome.permissions.request(
+                            { origins: addOrigins },
+                            function(granted) {
+                                if ( granted )
+                                    save();
+                                else
+                                    return;
+                            }
+                        );
+                    }
+                });
+
+                function save() {
+                    var statusBody = document.getElementById("save-status");
+
+                    statusBody.textContent = "Saving...";
+
+                    chrome.storage.local.set(
+                        newConfig,
+                        function() {
+                            statusBody.textContent = "Saved";
+            
+                            setTimeout(
+                                function() { 
+                                    statusBody.textContent   = ""; 
+                                    statusBody.style.display = "none";
+                                    saveButton.disabled      = true;
+                                    update(newConfig);
+                                }, 
+                                750
+                            ); 
+                        }
+                    );
+                }
+
+                function getPageRules() {
+                    var bodies   = document.getElementsByClassName("rule"),
+                        newRules = [],
+                        errors   = [];
+
+                    for ( var i = 0; i < bodies.length; i++ ) {
+                        var body    = bodies[i],
+                            id      = body.id,
+                            idx     = parseInt(id.split("-")[1]),
+                            rule    = rules[idx],
+                            ruleNum = i+1,
+                            newRule = {};
+
+                        for ( var key in rule ) {
+                            switch( key ) {
+                                case "matches":
+                                    var thisId = id+"-"+key,
+                                        input  = idToInput[thisId],
+                                        value  = clean(input.value);
+
+                                    newRule[key] = value;
+
+                                    if ( value === "" ) {
+                                        showError(input);
+                                        errors.push(
+                                            "Missing required URL match pattern "+
+                                            "in rule "+ruleNum
+                                        );
+
+                                        continue;
+                                    }
+
+                                    if ( ! value.match(/^https*:\/\//) ) {
+                                        showError(input);
+                                        errors.push("Invalid matching URL in rule "+ruleNum);
+                                        continue;
+                                    }
+                                
+                                    showGood(input);
+                                    continue;
+                                case "host":
+                                    newRule[key] = {};
+
+                                    for ( var hostKey in rule[key] ) {
+                                        var hostId = id+"-host-"+hostKey,
+                                            input  = idToInput[hostId],
+                                            value  = clean(input.value);
+
+                                        newRule[key][hostKey] = value;
+
+                                        if ( 
+                                            value === "" &&
+                                            (hostKey === "type" || hostKey === "api")
+                                        ) {
+                                            showError(input);
+
+                                            errors.push(
+                                                "Missing required "+key+" "+hostKey+" value "+
+                                                "in rule "+ruleNum
+                                            );
+
+                                            continue;
+                                        }
+
+                                        if ( hostKey === "api" && ! value.match(/^https*:\/\//) ) {
+                                            showError(input);
+
+                                            errors.push(
+                                                "Invalid "+key+" API URL in rule "+ruleNum
+                                            );
+
+                                            continue;
+                                        }
+
+                                        showGood(input);
+                                    }
+
+                                    continue;
+                                case "gitsense":
+                                    newRule[key] = {};
+
+                                    for ( var gitsenseKey in rule[key] ) {
+                                        var gitsenseId = id+"-gitsense-"+gitsenseKey,
+                                            input      = idToInput[gitsenseId],
+                                            value      = clean(input.value);
+
+                                        newRule[key][gitsenseKey] = value;
+
+                                        if ( 
+                                            value === "" &&
+                                            (gitsenseKey === "hostId" || gitsenseKey === "api")
+                                        ) {
+                                            showError(input);
+
+                                            errors.push(
+                                                "Missing required "+key+" "+hostKey+" value "+
+                                                "in rule "+ruleNum
+                                            ); 
+
+                                            continue;
+                                        }
+
+                                        if ( hostKey === "api" && ! value.match(/^https*:\/\//) ) {
+                                            showError(input);
+
+                                            errors.push(
+                                                "Invalid "+key+" API URL in rule "+ruleNum
+                                            );
+
+                                            continue;
+                                        }
+
+                                        showGood(input);
+                                    } 
+
+                                    continue;
+                                default:
+                                    throw("Unrecognized key '"+key+"'");
+                            }
+                        }
+
+                        newRules.push(newRule);
+                    }
+
+                    if ( errors.length === 0 )
+                        return newRules;
+
+                    showErrorMsg(errors);
+                    return null;
+                }
+
+                function showError(input, message) {
+                    input.style.border = "1px solid red";
+                    input.style.backgroundColor = "rgb(255, 234, 234)";
+                }
+
+                function showGood(input) {
+                    input.style.border = null;
+                    input.style.backgroundColor = null;
+                }
+
+                function showErrorMsg(errors) {
+                    $(saveErrorBody).html("");
+                    $(saveErrorBody).show();
+
+                    var html = 
+                        "<strong>Page Rule Errors</strong>"+
+                        "<ul>";
+
+                    for ( var i = 0; i < errors.length; i++ )
+                        html += "<li>"+errors[i]+"</li>";
+
+                    html += "</ul>";
+
+                    $(saveErrorBody).html(html);
+                }
+
+                function mapOrigins(rules) {
+                    var origins = {};
+
+                    for ( var i = 0; i < rules.length; i++ ) {
+                        var rule = rules[i],
+                            urls = [ rule.matches, rule.host.api, rule.gitsense.api ];
+
+                        for ( var j = 0; j < urls.length; j++ ) {
+                            var a = document.createElement("a");
+                            a.href = urls[j];
+                            origins[a.origin+"/*"] = null;
+                        }
+                    }
+
+                    return origins;
+                }
+            }
+
+            function clickedAdd() {
+                var rule = {
+                    matches: "",
+                    gitsense: {
+                        api: "",
+                        hostId: "",
+                        secret: "",
+                        commitDecorator: ""
+                    },
+                    host: {
+                        type: "",
+                        api: "",
+                        username: "",
+                        secret: ""
+                    }
+                },
+
+                id = "rule-"+rules.length;
+
+                rules.push(rule);
+
+                addRule(id, rule, true);
+
+                setupEvents();
+            }
+        }
+
+        function clean(str) {
+            return str.replace(/\s/g, "");
         }
     }
 }

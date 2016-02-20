@@ -10,7 +10,14 @@
         h3 { margin-top: 10px; margin-bottom: 5px; } 
         p { line-height: 1.5; font-size: 13px; }
         ol { line-height: 1.7; }
-        input { padding: 3px; }
+        input { padding: 5px; }
+        input[type=button] { cursor: pointer; }
+        input[type=text] {
+            -webkit-appearance: none; 
+            border-radius: 3px; 
+            border: 1px solid #888;
+        }
+        select { padding: 3px; border-radius: 3px; border: 1px solid #888; }
         .input-cell { display: table-cell }
         .input-status { width: 30px; display: none; }
         .button { padding-left: 10px; padding-right: 10px; }
@@ -30,23 +37,25 @@
         .triangle {
             font-size: 12px;
             position: relative;
-            top: -2px;
             width: 12px;
             text-align: center;
         }
         .plus-minus {
-            font-size: 12px;
+            font-size: 1px;
             position: relative;
             top: -2px;
             width: 12px;
             text-align: center;
         }
-        .block-title {
-            cursor: pointer;
+        .error { 
+            width: 595px; 
+            color: #a94442; 
+            background-color: rgb(255, 234, 234); 
+            padding:10px; 
+            margin-top:20px; 
         }
-        .error { width: 595px; color: #a94442; background-color:#f2dede; padding:10px; margin-top:20px; }
         .rules { width: 500px; height: 400px; font-family: monospace; margin-top: 5px; }
-        table { border: 1px solid #ccc; border-bottom: 0px; border-spacing: 0px; }
+        table { border-bottom: 0px; border-spacing: 0px; line-height: 1.7 }
         td.attribute-name { 
             text-align:right; 
             padding: 10px;
@@ -66,6 +75,29 @@
             vertical-align: top;
         }
         td.sub-attribute-desc { padding: 5px; padding-top: 0px; }
+        td.field-cell { padding-right: 20px; }
+        .row { margin-bottom: 10px; }
+        fieldset { 
+            border: 1px solid #888; 
+            border-radius: 3px; 
+            margin-bottom: 20px; 
+            padding: 15px;
+            padding-top: 10px;
+        }
+        legend { 
+            color: black; 
+            font-weight: bold; 
+            font-size: 14px; 
+            padding-left: 7px; 
+            padding-right: 7px; 
+        }
+        .rule { border:1px solid #666; padding: 15px; margin-bottom: 20px; }
+        .block-header { margin-top: 15px; }
+        .block-body { padding-top: 10px; }
+        .block-name { font-weight: bold; margin-left: 5px; margin-right: 10px; cursor: pointer; }
+        .options { float: right; }
+        .option { cursor: pointer; font-size: 20px; color: #555;}
+        .option:hover { color: #4183c4; }
     </style> 
     <link rel="stylesheet" type="text/css" href="3rdparty/octicons/octicons.css"> 
 </head>
@@ -75,166 +107,9 @@
     <h2>
         Page Rules
     </h2>
-    <div style="width:700px;margin-bottom:10px;">
-        <h3 class="block">
-            <span class="octicon octicon-triangle-right triangle" style="font-size:12px;"></span>
-            <span class="block-title">Description</span>
-        </h3>
-        <div class="block block-body" style="display:none">
-            <p style="margin-top:0px;">
-            Page rules, which consists of one or more page object (described below), are used by GitSense to determine the
-            current page type and required API servers.&nbsp;
-            <br> 
-            <br>
-            <strong>Page object</strong><br>
-            <table style="margin-top:5px;">
-                <tr>
-                    <td class=attribute-name>matches</td>
-                    <td class=attribute-desc>
-                        A string containing a URL pattern to match against the current page location.
-                    </td>
-                </tr>
-                <tr>
-                    <td class=attribute-name>type</td>
-                    <td class=attribute-desc>
-                        A string containing one of the following page types:
-                        <ul>
-                            <li>bitbucket</li>
-                            <li>github</li>
-                            <li>github-enterprise</li>
-                        </ul> 
-                    </td>
-                </tr>
-                <tr>
-                    <td class=attribute-name>gitsense</td>
-                    <td class=attribute-desc>
-                        An object containing the following attributes:
-                        <table style="margin-top:10px;border:0px;line-height:1.5">
-                            <tr>
-                                <td class=sub-attribute-name>api:</td>
-                                <td class=sub-attribute-desc>
-                                    A string containing a URL to the GitSense API server
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class=sub-attribute-name>secret:</td>
-                                <td class=sub-attribute-desc>
-                                    An OPTIONAL string containing an access token for the GitSense server.&nbsp; Note a secret is only required if authentication has been enabled on the GitSense server.</td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-                <tr>
-                    <td class=attribute-name>host</td>
-                    <td class=attribute-desc>
-                        An object containing the following attributes:
-                        <table style="margin-top:10px;border:0px;line-height:1.5">
-                            <tr>
-                                <td class=sub-attribute-name>api:</td>
-                                <td class=sub-attribute-desc>
-                                    A string containing a URL to the Bitbucket/GitHub/GitHub Enterprise API server. 
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class=sub-attribute-name>secret:</td>
-                                <td class=sub-attribute-desc>
-                                    An OPTIONAL string containing your access token (for GitHub/GitHub Enterprise) or API key (for Bitbucket).&nbsp;
-                                    To view <b>PRIVATE</b> repositories with GitSense, you'll have to specify a secret, as it is used to query the host API to verify your repository read permission.
-                                    <br>
-                                    <br>
-                                    <strong>Security</strong><br>
-                                    You should only use GitHub access tokens that have "repo" scope and nothing more.&nbsp;
-                                    That is, don't use access tokens that have "user" privilege among other things.&nbsp;
-                                    For API keys (Bitbucket), you can't and don't have to worry about changing their scope, as the scope is limited by default.
-                            </tr>
-                        </table>
-
-                    </td>
-                </tr>
-            </table> 
-        </div>
-        <h3 class="block">
-            <span class="octicon octicon-triangle-right triangle" style="font-size:12px;"></span>
-            <span class="block-title">Example</span>
-        </h3>
-        <div class="block block-body" style="display:none;">
-        <p>
-            <strong>Rule 1</strong><br>
-            Rule 1 will match repositories that are owned by the Bitbucket team "johndohh-team". &nbsp;
-            It also tells GitSense to use a private GitSense install, which is accessible from the local area network (192.168.1.2).&nbsp;
-            And it provides a secret (an API key), that can be used to query the Bitbucket API server (https://api.bitbucket.org), to verify the users read permission.<br>
-            <br>
-            <strong>Rule 2</strong><br>
-            Rule 2 will match all other Bitbucket repositories that are not owned by "johndohh-team".&nbsp;
-            This rule also tells GitSense to use the publicly available GitSense server (https://api.gitsense.com).<br>
-            <br>
-            <strong>Rule 3</strong><br>
-            Rule 3 will match all GitHub repositories and because no secret was provided, GitSense will not work for PRIVATE GitHub repositories.<br>
-            <br>
-            <strong>Rule 4</strong><br>
-            Rule 4 will match all repositories on a local GitHub Enterprise install (192.168.1.1).&nbsp;
-            It also provides a secret (token access), which can be used by GitSense to query the GitHub Enterprise API (https://192.168.1.1/api/v3), to verify their repository read permission.&nbsp;
-            And it uses a private GitSense install, which is accessible from their local area network (https://192.168.1.2).<br>
-        </p>
-<pre style="border:1px solid #ccc;padding:10px;">
-[
-    {
-        "type": "bitbucket",
-        "matches": "https://bitbucket.org/johndohh-team/*",
-        "gitsense": {
-            "api": "https://192.168.1.2",
-            "secret": "mKAhnHdBYfByJNrvQbdV1Bf5lyXoKnQGTcbM62c2"
-        }, 
-        "host": {
-            "api": "https://api.bitbucket.org",
-            "secret": "mgw2iXO06WdqvqR2WeeTBGkypaQDKBQb"
-        }
-    },
-    {
-        "type": "bitbucket",
-        "matches": "https://bitbucket.org/*", 
-        "gitsense": {
-            "api": "https://api.gitsense.com"
-        }, 
-        "host": {
-            "api": "https://api.bitbucket.org"
-        }
-    },
-    {
-        "type": "github",
-        "matches": "https://github.com/*",
-        "gitsense": {
-            "api": "https://api.gitsense.com"
-        },
-        "host": {
-            "api": "https://api.github.com"
-        }
-    },
-    {
-        "type": "github-enterprise",
-        "matches": "https://192.168.1.1/*",
-        "gitsense": {
-            "api": "https://192.168.1.2",
-            "secret": "mKAhnHdBYfByJNrvQbdV1Bf5lyXoKnQGTcbM62c2"
-        }
-        "host": {
-            "api": "https://192.168.1.1/api/v3",
-            "secret": "e9c8233e94a7993fd47975f62296a8f68604d3b8"
-        }
-    }
-]
-</pre>
-        </div>
-        <h3 class="block">
-            <span class="octicon octicon-triangle-down triangle" style="font-size:12px;"></span>
-            <span class="block-title">Rules</span>
-        </h3>
-        <div class="block block-cell">
-            <textarea id=page_rules-input class=rules></textarea>
-        </div>
-    </div>   
-
-    <input class=button id=save-button type=button value="Save" disabled>
+    <div id=pageRules style="width:765px; margin-bottom:10px;"></div> 
+    <input class=button id=new-rule-button type=button value="Add new rule">
+    <input class=button id=save-button type=button value="Save changes" disabled>
     <span id=save-status style="margin-left:5px"></span>
     <div id=save-error class=error style="display:none;"></div>
     <div class=reminder>
@@ -243,8 +118,11 @@
         in the manifest.json file and to reload the extension.
     </div>
 
+    <script src="3rdparty/js/jquery-2.1.4.min.js"></script>
     <script src="js/arch.js"></script>
     <script src="js/config.js"></script>
+    <script src="js/utils/variable.js"></script>
+    <script src="js/utils/html.js"></script>
     <script src="options.js"></script>
 </body>
 </html>

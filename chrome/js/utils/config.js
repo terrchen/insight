@@ -2,15 +2,15 @@ sdes.utils.config = function() {
     var _this = this;
 
     this.getRule = function() {
-        for ( var i = 0; i < sdes.config.page_rules.length; i++ ) {
-            var rule = sdes.config.page_rules[i],
+        for ( var i = 0; i < sdes.config.pageRules.length; i++ ) {
+            var rule = sdes.config.pageRules[i],
                 patt = new RegExp(rule.matches.replace("*", ".*"));
 
             if ( window.location.href.match(patt) )
                 return rule;
         }
 
-        throw("GitSense: No rule found for current URL: "+window.location.href);
+        return null;
     }
 
     this.getHost = function() {
