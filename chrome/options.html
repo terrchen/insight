@@ -54,7 +54,17 @@
             padding:10px; 
             margin-top:20px; 
         }
-        .rules { width: 500px; height: 400px; font-family: monospace; margin-top: 5px; }
+        .rule { 
+            border:1px solid #666; 
+            border-bottom: 0px;
+            padding: 15px; 
+        }
+        .rules { 
+            width: 500px; 
+            height: 400px; 
+            font-family: monospace; 
+            margin-top: 5px; 
+        }
         table { border-bottom: 0px; border-spacing: 0px; line-height: 1.7 }
         td.attribute-name { 
             text-align:right; 
@@ -76,7 +86,7 @@
         }
         td.sub-attribute-desc { padding: 5px; padding-top: 0px; }
         td.field-cell { padding-right: 20px; }
-        .row { margin-bottom: 10px; }
+        .row { }
         fieldset { 
             border: 1px solid #888; 
             border-radius: 3px; 
@@ -91,10 +101,15 @@
             padding-left: 7px; 
             padding-right: 7px; 
         }
-        .rule { border:1px solid #666; padding: 15px; margin-bottom: 20px; }
         .block-header { margin-top: 15px; }
-        .block-body { padding-top: 10px; }
-        .block-name { font-weight: bold; margin-left: 5px; margin-right: 10px; cursor: pointer; }
+        .block-body { padding-top: 5px; font-size: 13px; }
+        .block-name { 
+            font-size: 15px;
+            font-weight: bold; 
+            margin-left: 5px; 
+            margin-right: 10px; 
+            cursor: pointer; 
+        }
         .options { float: right; }
         .option { cursor: pointer; font-size: 20px; color: #555;}
         .option:hover { color: #4183c4; }
@@ -110,8 +125,8 @@
         <h2>
             Page Rules
         </h2>
-        <div id=pageRules style="margin-bottom:10px;"></div> 
-        <input class=button id=new-rule-button type=button value="Add new rule">
+        <div id=pageRules style="margin-bottom:30px;"></div> 
+        <input class=button id=new-rule-button type=button value="Create new rule">
         <input class=button id=save-button type=button value="Save changes" disabled>
         <span id=save-status style="margin-left:5px"></span>
         <a id=restore class=restore>Restore default settings</a>

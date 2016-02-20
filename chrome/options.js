@@ -1,7 +1,6 @@
 "use strict";
 
-// The DOMContentLoaded event is defined at the bottom of this script and is what
-// triggers this function.
+// The trigger for this function is defined at the bottom of this script
 function load() {
     // Get the locally stored settings.  If nothing is stored
     // locally, the current values that are defined by sdes.config
@@ -9,14 +8,12 @@ function load() {
     // the default sdes.config values.
     chrome.storage.local.get(sdes.config, update);
 
-    // The save button is defined in the options.html file
     var saveButton    = document.getElementById("save-button"),
         saveErrorBody = document.getElementById("save-error"),
         newRuleButton = document.getElementById("new-rule-button"),
-        restoreLink   = document.getElementById("restore");
-
-    var hostTypes = [ "", "bitbucket", "github", "github-enterprise" ],
-        htmlUtil  = new sdes.utils.html();
+        restoreLink   = document.getElementById("restore"),
+        hostTypes     = [ "", "bitbucket", "github", "github-enterprise" ],
+        htmlUtil      = new sdes.utils.html();
 
     restoreLink.onclick = restoreDefault;
 
@@ -43,7 +40,6 @@ function load() {
                 addRule("rule-"+i, rules[i], false);
 
             setupEvents();
-
             check();
 
             newRuleButton.onclick = clickedAdd; 
@@ -71,16 +67,27 @@ function load() {
                             "</sapn>"+
                         "</div>"+
                         "<div style='clear:both'></div>"+
-                        getHostSettings()+
-                        getGitSenseSettings(),
+                        "<div class='block block-header'>"+
+                            "<span id="+id+"-host-triangle "+
+                                "class='triangle octicon octicon-triangle-"+direction+"'></span>"+
+                            "<span id="+id+"-host-title "+
+                                "class='block-name'>Settings</span>"+
+                        "</div>"+
+                        "<div class='block' style='"+display+"'>"+
+                            getHostSettings()+
+                            getGitSenseSettings()+
+                        "</div>";
 
-                    div = htmlUtil.createDiv({
-                        id: id,
-                        html: html,
-                        cls: "rule"
-                    });
+            var div = 
+                htmlUtil.createDiv({
+                    id: id,
+                    html: html,
+                    cls: "rule"
+                });
 
                 renderToBody.appendChild(div);
+
+            renderToBody.style.borderBottom = "1px solid #666";
 
                 function getHostTypes() {
                     var html = "<select id="+id+"-host-type>";
@@ -99,13 +106,13 @@ function load() {
 
                 function getHostSettings() {
                     var html =
-                        "<div class='block block-header'>"+
-                            "<span id="+id+"-host-triangle "+
-                                "class='triangle octicon octicon-triangle-"+direction+"'></span>"+
+                        "<div class='block-header'>"+
                             "<span id="+id+"-host-title "+
-                                "class='block-name'>Host settings</span>"+
+                                "style='font-weight:bold;'>"+
+                                "Bitbucket, GitHub and GitHub Enterprise"+
+                            "</span>"+
                         "</div>"+
-                        "<div class='block block-body' style='"+display+"'>"+
+                        "<div class='block-body'>"+
                             "<table>"+
                                 "<tr>"+
                                     "<td class=field-cell>Type</td>"+
@@ -133,7 +140,7 @@ function load() {
                                             "id="+id+"-host-secret "+
                                             "value='"+rule.host.secret+"' "+
                                             "placeholder=Optional "+
-                                            "style='width:290px;'>"+
+                                            "style='width:287px;'>"+
                                     "</td>"+
                                 "</tr>"+
                             "</table>"+
@@ -144,13 +151,11 @@ function load() {
 
                 function getGitSenseSettings() {
                     var html =
-                        "<div class='block block-header'>"+
-                            "<span id="+id+"-gitsense-triangle "+
-                                "class='triangle octicon octicon-triangle-"+direction+"'></span>"+
+                        "<div class='block-header'>"+
                             "<span id="+id+"-gitsense-title "+
-                                "class='block-name'>GitSense settings</span>"+
+                                "style='font-weight:bold;'>GitSense</span>"+
                         "</div>"+
-                        "<div class='block block-body' style='"+display+"'>"+
+                        "<div class='block-body'>"+
                             "<table>"+
                                 "<tr>"+
                                     "<td class=field-cell>Host identifier</td>"+
@@ -296,20 +301,24 @@ function load() {
                         thisId   = temp[0]+"-"+temp[1],
                         thisBody = document.getElementById(thisId),
                         action   = temp.pop(),
-                        rule     = rules[thisIdx];
+                        rule     = rules[thisIdx],
+                        bodies   = document.getElementsByClassName("rule");
 
                     if ( action === "delete" ) {
+                        if ( bodies.length === 1 )
+                            renderToBody.style.borderBottom = "0px";
+
                         rule.deleted = true;
                         thisBody.parentNode.removeChild(thisBody);
                         check();
+
                         return;
                     }
 
-                    var bodies = document.getElementsByClassName("rule"),
-                        pos;
-
                     if ( bodies.length === 1 )
                         return;
+
+                    var pos;
 
                     for ( var i = 0; i < bodies.length; i++ ) {
                         var body = bodies[i];

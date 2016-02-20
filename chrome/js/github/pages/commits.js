@@ -499,6 +499,9 @@ sdes.github.pages.commits = function(rule, page) {
             function renderSearchInput() {
                 searchInputBuilder = 
                         new sdes.github.ui.input.search({
+                            isEnterprise: 
+                                rule.host.type === "github-enterprise" ? 
+                                    true : false,
                             align: "right",
                             value: "",
                             placeholder: "Search branch...",
