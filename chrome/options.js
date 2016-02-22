@@ -57,7 +57,7 @@ function load() {
                             "<input id="+id+"-matches type=text "+
                                 "placeholder='URL match pattern' "+
                                 "value='"+rule.matches+"' "+
-                                "style='width:645px;'>"+
+                                "style='width:730px;'>"+
                             "<span class='options'>"+
                                 "<span id="+id+"-option-down "+
                                     "class='octicon octicon-arrow-down option' "+
@@ -133,7 +133,7 @@ function load() {
                                             "id="+id+"-host-secret "+
                                             "value='"+rule.host.secret+"' "+
                                             "placeholder=Optional "+
-                                            "style='width:200px;'>"+
+                                            "style='width:290px;'>"+
                                     "</td>"+
                                 "</tr>"+
                             "</table>"+
@@ -162,7 +162,7 @@ function load() {
                                         "<input type=text "+
                                             "id="+id+"-gitsense-hostId "+
                                             "value='"+rule.gitsense.hostId+"' "+
-                                            "style='width:100px'>"+
+                                            "style='width:117px'>"+
                                     "</td>"+
                                     "<td class=field-cell>"+
                                         "<input type=text "+
@@ -175,7 +175,7 @@ function load() {
                                             "id="+id+"-gitsense-secret "+
                                             "value='"+rule.gitsense.secret+"' "+
                                             "placeholder=Optional "+
-                                            "style='width:350px;'>"+
+                                            "style='width:420px;'>"+
                                     "</td>"+
                                 "</tr>"+
                             "</table>"+
@@ -186,7 +186,7 @@ function load() {
                                 "id="+id+"-gitsense-commitDecorator "+
                                 "value='"+rule.gitsense.commitDecorator+"' "+
                                 "placeholder=Optional "+
-                                "style='width:722px;padding-right:0px;'>"+
+                                "style='width:809px;padding-right:0px;'>"+
                         "</div>";
                     return html;
                 }
