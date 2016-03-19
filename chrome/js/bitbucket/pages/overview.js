@@ -1,6 +1,6 @@
 var gitsenseOverviewPageStartTime;
 
-sdes.bitbucket.pages.overview = function(page) {
+sdes.bitbucket.pages.overview = function(rule, page) {
     "use strict";
 
     gitsenseOverviewPageStartTime = new Date().getTime();
@@ -47,7 +47,7 @@ sdes.bitbucket.pages.overview = function(page) {
         }
 
         function getBranchHead() {
-            var bdata = new sdes.bitbucket.data.repo( page.owner, page.repo);
+            var bdata = new sdes.bitbucket.data.repo(page.owner, page.repo);
 
             bdata.getBranchesAndTags(function(_branchesAndTags, error) {
                 if ( error !== undefined )
@@ -156,22 +156,6 @@ sdes.bitbucket.pages.overview = function(page) {
             }
         }
 
-        function updateRepoOverview()  {
-            repoOverviewBody = document.getElementById("repo-overview");
-
-            if ( repoOverviewBody === null ) {
-                if ( new Date().getTime() > stopAt ) 
-                    throw("GitSense: Giving up on waiting for the class aui-nav-breadcrumbs");
-
-                setTimeout(updateRepoOverview,10);
-        
-                return;
-            }
-
-            repoOverviewBody.style.position = "relative";
-            repoOverviewBody.style.top      = "-30px";
-        }
-
         function updateRepoInfo() {
             var repoInfo = document.getElementById("repo-info");
 
@@ -267,7 +251,7 @@ sdes.bitbucket.pages.overview = function(page) {
             stats.style.backgroundColor = "white";
             stats.style.position = "relative";
             stats.style.cssFloat = "right";
-            stats.style.zIndex = 10;
+            stats.style.zIndex   = 10;
         }
     }
 
@@ -344,13 +328,14 @@ sdes.bitbucket.pages.overview = function(page) {
                         display: "none"
                     }
                 });
-    
-            if ( readmeBody !== null ) {
-                readmeBody.parentNode.insertBefore(chartsBody, readmeBody);
-                readmeBody.parentNode.insertBefore(searchInputBody, readmeBody);
-                readmeBody.parentNode.insertBefore(htmlUtil.createClearDiv(), readmeBody);
-                readmeBody.parentNode.insertBefore(searchResultsBody, readmeBody);
-            }
+   
+            if ( readmeBody === null ) 
+                return;
+
+            readmeBody.parentNode.insertBefore(chartsBody, readmeBody);
+            readmeBody.parentNode.insertBefore(searchInputBody, readmeBody);
+            readmeBody.parentNode.insertBefore(htmlUtil.createClearDiv(), readmeBody);
+            readmeBody.parentNode.insertBefore(searchResultsBody, readmeBody);
         }
     
         function renderSearch() {

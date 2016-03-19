@@ -14,9 +14,10 @@
 sdes.gitsense.data.relay = function() {
     "use strict";
 
-    var urlPrefix = sdes.config.gitsenseApiUrl+"/host",
-        token     = sdes.config.gitsenseAccessToken,
-        varUtil   = new sdes.utils.variable();
+    var varUtil    = new sdes.utils.variable(),
+        configUtil = new sdes.utils.config(),
+        rule       = configUtil.getRule(),
+        urlPrefix  = rule.gitsense.api+"/host";
 
     this.query = function(params) {
         if ( varUtil.isNoU(params.host) )
@@ -37,7 +38,7 @@ sdes.gitsense.data.relay = function() {
         $.ajax({
             url: urlPrefix+"/"+params.host+"/"+params.owner+"/"+params.repo+"/relay",
             data: {
-                token: token,
+                rule: JSON.stringify(rule),
                 url: params.url
             },
             success: function(data) {

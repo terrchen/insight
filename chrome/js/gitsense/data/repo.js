@@ -1,15 +1,16 @@
 sdes.gitsense.data.repo = function() {
     "use strict";
 
-    var urlPrefix = sdes.config.gitsenseApiUrl+"/host",
-        token     = sdes.config.gitsenseAccessToken,
-        varUtil   = new sdes.utils.variable();
+    var varUtil    = new sdes.utils.variable(),
+        configUtil = new sdes.utils.config(),
+        rule       = configUtil.getRule(),
+        urlPrefix  = rule.gitsense.api+"/host";
 
     this.isSupported = function(host, owner, repo, callback) {
         $.ajax({
             url: urlPrefix+"/"+host+"/"+owner+"/"+repo,
             data: {
-                token: token
+                rule: JSON.stringify(rule)
             },
             success: function(data) {
                 callback(true);
@@ -27,7 +28,7 @@ sdes.gitsense.data.repo = function() {
         $.ajax({
             url: urlPrefix+"/"+host+"/"+owner+"/"+repo+"/main-branch",
             data: {
-                token: token
+                rule: JSON.stringify(rule)
             },
             success: function(branch) {
                 callback(true);

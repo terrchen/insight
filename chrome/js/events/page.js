@@ -1,8 +1,11 @@
 sdes.events.page = function() {
+    "use strict";
+
     var _this            = this,
         lastLocation     = $.extend(true, {}, window.location),
         timeout          = 200,
         varUtil          = new sdes.utils.variable(),
+        configUtil       = new sdes.utils.config(),
         callbackOnChange = [];
 
     this.setTimeout = function(newTimeout) {
@@ -24,21 +27,11 @@ sdes.events.page = function() {
 
         lastLocation = $.extend(true, {}, window.location);
 
-        var host = getHost();
+        var rule = configUtil.getRule();
 
         for ( var i = 0; i < callbackOnChange.length; i++ )
-            callbackOnChange[i](host);
+            callbackOnChange[i](rule);
 
         setTimeout(_this.startTracking, timeout);
-    }
-
-    function getHost() {
-        if ( window.location.host.match(/bitbucket/) )
-            return "bitbucket";
-
-        if ( window.location.host.match(/github/) )
-            return "github";
-
-        throw("GitSense: Unable to determine host provider based on URI");
     }
 }

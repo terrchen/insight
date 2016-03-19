@@ -604,8 +604,8 @@ sdes.bitbucket.comp.search = function(page, branchHead, chartsBody, resultsBody,
                             marginBottom: "2px"
                         },
                         append: append,
-                        onmouseover: over,
-                        onmouseout: out
+                        //onmouseover: over,
+                        //onmouseout: out
                     }
                 );
 
@@ -637,18 +637,19 @@ sdes.bitbucket.comp.search = function(page, branchHead, chartsBody, resultsBody,
                     "commits/"+
                     match.commit.name+"#chg-"+match.path;
 
-                // The following link to the old file revision isn't guaranteed to work 
-                // since it doesn't take into  consideration file renames, but it should 
-                // work the vast majority of the time.
-                var oldHref =
-                    action === "A" ?
-                        null :
-                        "/"+
-                        page.owner+"/"+
-                        page.repo+"/"+
-                        "src/"+
-                        match.oldCommit.name+"/"+
-                        match.path;
+                // Not sure if we should support this yet. Commenting out for now.
+                //// The following link to the old file revision isn't guaranteed to work 
+                //// since it doesn't take into  consideration file renames, but it should 
+                //// work the vast majority of the time.
+                //var oldHref =
+                //    action === "A" ?
+                //        null :
+                //        "/"+
+                //        page.owner+"/"+
+                //        page.repo+"/"+
+                //        "src/"+
+                //        match.oldCommit.name+"/"+
+                //        match.path;
                
                 var actionSpan =
                         htmlUtil.createSpan({
@@ -678,27 +679,27 @@ sdes.bitbucket.comp.search = function(page, branchHead, chartsBody, resultsBody,
                             }
                         }),
 
-                    oldRev =
-                        action === "A" ?
-                            null :
-                            htmlUtil.createSpan({
-                                html: 
-                                    "<a href=\""+oldHref+"\" target=_blank "+
-                                        "title='View previous revision at "+
-                                            match.oldCommit.name+"'>"+
-                                        "<span class='aui-icon aui-icon-small "+
-                                            "aui-iconfont-devtools-file' "+
-                                            "style='background-color:white;'></span>"+
-                                    "</a>",
-                                style: {
-                                    cssFloat: "right",
-                                    display: "none"
-                                }
-                            }),
+                    //oldRev =
+                    //    action === "A" ?
+                    //        null :
+                    //        htmlUtil.createSpan({
+                    //            html: 
+                    //                "<a href=\""+oldHref+"\" target=_blank "+
+                    //                    "title='View previous revision at "+
+                    //                        match.oldCommit.name+"'>"+
+                    //                    "<span class='aui-icon aui-icon-small "+
+                    //                        "aui-iconfont-devtools-file' "+
+                    //                        "style='background-color:white;'></span>"+
+                    //                "</a>",
+                    //            style: {
+                    //                cssFloat: "right",
+                    //                display: "none"
+                    //            }
+                    //        }),
 
                     header = 
                         htmlUtil.createDiv({
-                            append: [ actionAndPath, oldRev, htmlUtil.createClearDiv() ],
+                            append: [ actionAndPath, htmlUtil.createClearDiv() ],
                             style: {
                                 fontSize: "13px"
                             }
@@ -707,7 +708,7 @@ sdes.bitbucket.comp.search = function(page, branchHead, chartsBody, resultsBody,
                 if ( match.diffs === undefined ) {
                     return {
                         body: header,
-                        oldRev: oldRev
+                        //oldRev: oldRev
                     };
                 }
 
@@ -720,7 +721,7 @@ sdes.bitbucket.comp.search = function(page, branchHead, chartsBody, resultsBody,
 
                 return {
                     body: body,
-                    oldRev: oldRev
+                    //oldRev: oldRev
                 }
 
                 function getDiffsTable(diffs) {

@@ -46,12 +46,13 @@ sdes.github.ui.input.search = function(params) {
                     borderBottomLeftRadius: "0px",
                     minWidth: "33px",
                     textAlign: "center",
-                    top: "-8px"
+                    top: params.isEnterprise ? null : "-8px",
+                    padding: params.isEnterprise ? "8px" : null
                 }
             });
 
         input = htmlUtil.createTextInput({
-            cls: "subnav-search-input input-contrast",
+            cls: "form-control subnav-search-input input-contrast",
             value: value,
             placeholder: placeholder,
             disabled: params.disable,

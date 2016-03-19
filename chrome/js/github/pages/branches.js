@@ -4,16 +4,24 @@
 // go with this, so don't be surprised if you find things getting
 // deleted for no apparent reason.
 
-sdes.github.pages.branches = function(page) {
+sdes.github.pages.branches = function(rule, page) {
     "use strict";
 
-    var host     = "github",
+    var host     = rule.gitsense.hostId,
         htmlUtil = new sdes.utils.html(),
         dateUtil = new sdes.utils.date(),
         varUtil  = new sdes.utils.variable(),
-        bhdata   = new sdes.gitsense.data.branch.heads(host, page.owner, page.repo),
 
-        idPrefix                = "id"+CryptoJS.MD5(page.owner+":"+page.repo+":branches"),
+        bhdata = new sdes.gitsense.data.branch.heads(
+            host, 
+            page.owner, 
+            page.repo
+        ),
+
+        idPrefix = "id"+CryptoJS.MD5(
+            page.owner+":"+page.repo+":branches"
+        ),
+
         chartsBodyId            = idPrefix+"-charts",
         chartSettingsBodyId     = idPrefix+"-chart-settings",
         chartTypesButtonsId     = idPrefix+"-chart-types-buttons",
@@ -660,6 +668,9 @@ sdes.github.pages.branches = function(page) {
 
             var inputBuilder = 
                     new sdes.github.ui.input.search({
+                        isEnterprise: 
+                            rule.host.type === "github-enterprise" ? 
+                                true : false,
                         align: "right",
                         value: args.join(" "),
                         disable: true,
@@ -796,10 +807,13 @@ sdes.github.pages.branches = function(page) {
 
                 branchToBuilder[branch] =
                     new sdes.github.ui.commits(
+                        rule,
                         page.owner,
                         page.repo,
-                        renderTo,
-                        ( i !== 0 ? 0 : null)
+                        renderTo, 
+                        {
+                            groupHeaderOpacity: i === 0 ? null : 0
+                        }
                     );
 
                 renderCommits(branch, 1);

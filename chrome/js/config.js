@@ -4,10 +4,36 @@
 // See options.html and options.js for more information
 //
 sdes.config = {
-    "bitbucketApiUrl": "https://api.bitbucket.org",
-    "githubApiUrl": "https://api.github.com",
-    "gitsenseApiUrl": "https://api.gitsense.com",
-    "bitbucketAccessToken": "",
-    "githubAccessToken": "",
-    "gitsenseAccessToken": ""
+    "routingRules" : [ 
+        { 
+            "matches": "https://bitbucket.org/*",
+            "host": {
+                "type": "bitbucket",
+                "api": "https://api.bitbucket.org",
+                "username": "",
+                "secret": ""
+            },
+            "gitsense": {
+                "api": "https://api.gitsense.com",
+                "hostId": "bitbucket",
+                "secret": "",
+                "commitDecorator": ""
+            }
+        },
+        {
+            "matches": "https://github.com/*",
+            "host": {
+                "type": "github",
+                "api": "https://api.github.com",
+                "username": "",
+                "secret": ""
+            },
+            "gitsense": {
+                "api": "https://api.gitsense.com",
+                "hostId": "github",
+                "secret": "",
+                "commitDecorator": ""
+            }
+        }
+    ]
 }

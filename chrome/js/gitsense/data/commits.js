@@ -1,9 +1,11 @@
 sdes.gitsense.data.commits = function(host, owner, repo) {
     "use strict";
 
-    var urlPrefix = sdes.config.gitsenseApiUrl+"/host/"+host+"/"+owner+"/"+repo+"/commits",
-        varUtil   = new sdes.utils.variable(),
-        cache     = sdes.cache.gitsense.data.commits;
+    var varUtil    = new sdes.utils.variable(),
+        configUtil = new sdes.utils.config(),
+        rule       = configUtil.getRule(),
+        urlPrefix  = rule.gitsense.api+"/host/"+host+"/"+owner+"/"+repo+"/commits",
+        cache      = sdes.cache.gitsense.data.commits;
 
     if ( cache === undefined )
         throw("GitSense: No cache object for sdes.gitsense.data.commits");
@@ -22,7 +24,10 @@ sdes.gitsense.data.commits = function(host, owner, repo) {
 
         $.ajax({
             url: urlPrefix+"/codechurn",
-            data: { commits: JSON.stringify(commits) },
+            data: { 
+                commits: JSON.stringify(commits),
+                rule: JSON.stringify(rule)
+            },
             success: function(results) {
                 cache.getCommitsCodeChurn[key] = results;
                 callback(results);
@@ -59,7 +64,8 @@ sdes.gitsense.data.commits = function(host, owner, repo) {
         $.ajax({
             url: urlPrefix+"/map-by-id",
             data: {
-                ids: JSON.stringify(temp)
+                ids: JSON.stringify(temp),
+                rule: JSON.stringify(rule)
             },
             success: function(_idToCommit) {
                 for ( var id in _idToCommit ) {

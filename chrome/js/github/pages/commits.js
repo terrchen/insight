@@ -10,10 +10,10 @@
 // could preserve our events, when GitHub changes states, we'll be able
 // to provide the users with a much better experience.
 
-sdes.github.pages.commits = function(page) {
+sdes.github.pages.commits = function(rule, page) {
     "use strict";
 
-    var host = "github",
+    var host = rule.gitsense.hostId,
 
         bhdata = new sdes.gitsense.data.branch.heads(
             host, 
@@ -469,6 +469,7 @@ sdes.github.pages.commits = function(page) {
 
             var search = 
                     new sdes.github.comp.search(
+                        rule,
                         page, 
                         branchHead,
                         chartsBody,
@@ -498,6 +499,9 @@ sdes.github.pages.commits = function(page) {
             function renderSearchInput() {
                 searchInputBuilder = 
                         new sdes.github.ui.input.search({
+                            isEnterprise: 
+                                rule.host.type === "github-enterprise" ? 
+                                    true : false,
                             align: "right",
                             value: "",
                             placeholder: "Search branch...",
@@ -581,7 +585,7 @@ sdes.github.pages.commits = function(page) {
 
                     revsTree = 
                         new sdes.gitsense.ui.trees.changes(
-                            host,
+                            rule,
                             page.owner,
                             page.repo,
                             page.branch,
@@ -592,8 +596,6 @@ sdes.github.pages.commits = function(page) {
                                 showSearchPlus: page.filterCommits ? false : true
                             }
                         );
-    
-                revsTree.setStyle("github");
     
                 revsTree.render("", "tree", treeBody);
     
