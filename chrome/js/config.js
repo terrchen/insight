@@ -4,7 +4,7 @@
 // See options.html and options.js for more information
 //
 sdes.config = {
-    "pageRules" : [ 
+    "routingRules" : [ 
         { 
             "matches": "https://bitbucket.org/*",
             "host": {

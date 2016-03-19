@@ -42,8 +42,13 @@ sdes.github.data.repo = function(owner, name) {
     }
 
     function getBeforeSend() {
-        if ( rule.host.secret === undefined || rule.host.username === undefined )
+        if ( 
+            rule.host.secret === undefined || 
+            rule.host.username === undefined ||
+            ( rule.host.secret === "" && rule.host.username === "" )
+        ) {
             return null;
+        }
     
         return function (xhr){ 
             xhr.setRequestHeader(

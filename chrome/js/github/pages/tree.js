@@ -254,7 +254,7 @@ sdes.github.pages.tree = function(rule, page) {
                         style: {
                             width: "980px",
                             height: "80px",
-                            border: "1px solid #bbb",
+                            border: "1px solid #ccc",
                             marginBottom: "10px"
                         }
                     });
@@ -328,12 +328,14 @@ sdes.github.pages.tree = function(rule, page) {
             function renderSearchInput() {
                 searchInput = 
                         htmlUtil.createTextInput({
+                            cls: "form-control",
                             placeholder: "Search branch...",
                             style: {
                                 width: "100%",
-                                minHeight: "28px",
+                                minHeight: "30px",
                                 padding: "4px",
-                                paddingLeft: "30px",
+                                paddingLeft: "28px",
+                                borderColor: "#ccc",
                                 color: "#888"
                             } 
                         });
@@ -344,7 +346,7 @@ sdes.github.pages.tree = function(rule, page) {
                             style: {
                                 color: "#ccc",
                                 position: "relative",
-                                top: "-22px",
+                                top: "-24px",
                                 left: "6px"
                             }
                         }),
@@ -362,7 +364,7 @@ sdes.github.pages.tree = function(rule, page) {
                                 paddingRight: "7px",
                                 position: "relative",
                                 right: "3px",
-                                top: "-25px",
+                                top: "-26px",
                                 fontSize: "12px",
                             }
                         });

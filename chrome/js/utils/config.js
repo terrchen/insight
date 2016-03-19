@@ -2,8 +2,8 @@ sdes.utils.config = function() {
     var _this = this;
 
     this.getRule = function() {
-        for ( var i = 0; i < sdes.config.pageRules.length; i++ ) {
-            var rule = sdes.config.pageRules[i],
+        for ( var i = 0; i < sdes.config.routingRules.length; i++ ) {
+            var rule = sdes.config.routingRules[i],
                 patt = new RegExp(rule.matches.replace("*", ".*"));
 
             if ( window.location.href.match(patt) )
@@ -14,18 +14,38 @@ sdes.utils.config = function() {
     }
 
     this.getHost = function() {
-        return _this.getRule().type;
-    }
+        var rule = _this.getRule();
+        
+        if ( rule === null )
+            return null;
 
-    this.getBitbucketApi = function() {
-        return _this.getRule().host.api;
+        return rule.type;
     }
 
     this.getGitSenseApi = function() {
-        return _this.getRule().gitsense.api;
+        var rule = _this.getRule();
+        
+        if ( rule === null )
+            return null;
+
+        return rule.gitsense.api;
+    }
+
+    this.getBitbucketApi = function() {
+        var rule = _this.getRule();
+        
+        if ( rule === null )
+            return null;
+
+        return rule.host.api;
     }
 
     this.getGitHubApi = function() {
-        return _this.getRule().host.api;
+        var rule = _this.getRule();
+        
+        if ( rule === null )
+            return null;
+
+        return rule.host.api;
     }
 }

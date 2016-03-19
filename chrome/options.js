@@ -22,7 +22,7 @@ function load() {
             ruleToInputs = {};
 
         for ( var key in localConfig ) {
-            if ( key === "pageRules" )
+            if ( key === "routingRules" )
                 renderRules(key, localConfig[key]);
             else
                 set(key, localConfig[key]);
@@ -461,7 +461,7 @@ function load() {
                 if ( newRules === null )
                     return;
 
-                var newConfig = { pageRules: newRules };
+                var newConfig = { routingRules: newRules };
 
                 chrome.permissions.getAll(function(all) {
                     var newOrigins  = mapOrigins(newRules),

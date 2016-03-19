@@ -52,7 +52,7 @@ sdes.github.ui.input.search = function(params) {
             });
 
         input = htmlUtil.createTextInput({
-            cls: "subnav-search-input input-contrast",
+            cls: "form-control subnav-search-input input-contrast",
             value: value,
             placeholder: placeholder,
             disabled: params.disable,

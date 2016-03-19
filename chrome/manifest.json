@@ -1,8 +1,8 @@
 {
     "name": "GitSense",
-    "version": "0.2",
+    "version": "0.3",
     "manifest_version": 2,
-    "description": "Code search and much more for GitHub and Bitbucket",
+    "description": "Advanced search and code management metrics for Bitbucket, GitHub and GitHub Enterprise",
     "homepage_url": "https://gitsense.github.io",
     "options_page": "options.html",
     "icons": {
