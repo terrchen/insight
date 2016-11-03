@@ -1,12 +1,12 @@
-sdes.github.data.repo = function(owner, name) {
+sdes.github.data.repo = function(rule) {
     "use strict";
 
-    var rule   = new sdes.utils.config().getRule(),
-        apiUrl = rule.host.api;
+    var apiUrl = rule.host.api;
 
-    this.get = function(callback) {
+    this.get = function(owner, repo, callback) {
         $.ajax({
-            url: apiUrl+"/repos/"+owner+"/"+name,
+            beforeSend: getBeforeSend(),
+            url: apiUrl+"/repos/"+owner+"/"+repo,
             success: function (data) {
                 callback(data);
             },
@@ -42,13 +42,8 @@ sdes.github.data.repo = function(owner, name) {
     }
 
     function getBeforeSend() {
-        if ( 
-            rule.host.secret === undefined || 
-            rule.host.username === undefined ||
-            ( rule.host.secret === "" && rule.host.username === "" )
-        ) {
+        if ( rule.host.secret === undefined || rule.host.secret === "" )
             return null;
-        }
     
         return function (xhr){ 
             xhr.setRequestHeader(

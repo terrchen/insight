@@ -1,7 +1,7 @@
-# GitSense
-If you are not familiar with GitSense, you can learn more about it at
+# GitSense Insight
+If you are not familiar with GitSense Insight, you can learn more about it at
 
-http://gitsense.github.io and http://gitsense.bitbucket.org 
+httph://gitsense.com/blog
 
 If you were just there, and you are here because you want to manually install the GitSense Chrome Extension or if you want to see what makes it tick, then you've come to the right place.  The source code is open sourced and is licensed under the MIT license, so you can do as you please, but be forewarned, the code structure will most likely change in the near future, to make it easier to develop for other browsers, like Firefox.
 
@@ -31,10 +31,9 @@ If all went as planned, you should find the GitSense Extension in your Chrome Ex
 
 Below is a very short list of repos that are GitSense ready that you can play around with.
 
-| GitHub | Bitbucket |
+| GitHub | GitLab |
 | ------ | --------- |
-| https://github.com/twbs/bootstrap | https://bitbucket.org/atlassian/aui |
-| https://github.com/facebook/react | https://bitbucket.org/atlassian/jira-fisheye-plugin |
-| https://github.com/apache/spark | https://bitbucket.org/atlassian/atlas-connect |
-| https://github.com/apple/swift | https://bitbucket.org/atlassian/application-links |
-| https://github.com/angular/angular.js | https://bitbucket.org/atlassian/amps |
+| https://github.com/twbs | https://gitlab.com/gitlab-org
+| https://github.com/google | 
+| https://github.com/facebook | 
+| https://github.com/angular | 

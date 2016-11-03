@@ -1,37 +1,18 @@
-sdes.gitsense.data.repo = function() {
+sdes.gitsense.data.repo = function(rule) {
     "use strict";
 
-    var varUtil    = new sdes.utils.variable(),
-        configUtil = new sdes.utils.config(),
-        rule       = configUtil.getRule(),
-        urlPrefix  = rule.gitsense.api+"/host";
+    var varUtil = new sdes.utils.variable(),
+        cache   = sdes.cache.gitsense.data.repo,
+        baseUrl = rule.gitsense.baseUrl+"/insight";
 
-    this.isSupported = function(host, owner, repo, callback) {
-        $.ajax({
-            url: urlPrefix+"/"+host+"/"+owner+"/"+repo,
-            data: {
-                rule: JSON.stringify(rule)
-            },
-            success: function(data) {
-                callback(true);
-            },
-            error: function(e) {
-                if ( e.responseText.match(/Sorry/) )
-                    callback(false);
-                else
-                    callback(null, e);
-            }
-        });
-    }
+    if ( varUtil.isNoU(cache) )
+        cache = {};
 
-    this.getMainBranch = function(host, owner, repo, callback) {
+    this.queryHost = function(host, id, callback) {
         $.ajax({
-            url: urlPrefix+"/"+host+"/"+owner+"/"+repo+"/main-branch",
-            data: {
-                rule: JSON.stringify(rule)
-            },
-            success: function(branch) {
-                callback(true);
+            url: baseUrl+"/query/"+host+"/repos/"+id,
+            success: function(repo) {
+                callback(repo);
             },
             error: function(e) {
                 callback(null, e);

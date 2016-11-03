@@ -12,40 +12,4 @@ sdes.utils.config = function() {
 
         return null;
     }
-
-    this.getHost = function() {
-        var rule = _this.getRule();
-        
-        if ( rule === null )
-            return null;
-
-        return rule.type;
-    }
-
-    this.getGitSenseApi = function() {
-        var rule = _this.getRule();
-        
-        if ( rule === null )
-            return null;
-
-        return rule.gitsense.api;
-    }
-
-    this.getBitbucketApi = function() {
-        var rule = _this.getRule();
-        
-        if ( rule === null )
-            return null;
-
-        return rule.host.api;
-    }
-
-    this.getGitHubApi = function() {
-        var rule = _this.getRule();
-        
-        if ( rule === null )
-            return null;
-
-        return rule.host.api;
-    }
 }
