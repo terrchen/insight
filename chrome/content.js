@@ -49,14 +49,16 @@ function pageChanged(rule, force) {
     if ( rule === null )
         return;
 
-    if ( rule.host.type === "gitlab" && window.location.pathname === "/search" )
+    if ( window.location.pathname.match(/\/search$/) )
         force = true;
 
-    var lastUrl  = lastLocation === null ? null : lastLocation.origin+lastLocation.pathname,
-        lastHash = lastLocation === null ? null : lastLocation.hash,
-        thisShow = window.location.search.match(/gitsense=insight/) ? true : false,
-        thisUrl  = window.location.origin+window.location.pathname,
-        thisHash = window.location.hash;
+    var lastUrl    = lastLocation === null ? null : lastLocation.origin+lastLocation.pathname,
+        lastHash   = lastLocation === null ? null : lastLocation.hash,
+        lastSearch = lastLocation === null ? null : lastLocation.search,
+        thisShow   = window.location.search.match(/gitsense=insight/) ? true : false,
+        thisUrl    = window.location.origin+window.location.pathname,
+        thisHash   = window.location.hash,
+        thisSearch = window.location.search;
 
     lastLocation = $.extend(true, {}, window.location);
 
@@ -346,6 +348,7 @@ function renderGitHubPage(rule, page) {
             stopAnimation   = false,
             searchArgs      = page.search ? getSearchArgs() : null,
             searchMsg       = null,
+            codeMenu        = null,
             commitsMenu     = null,
             diffsMenu       = null,
             renderTo        = null,
@@ -581,27 +584,69 @@ function renderGitHubPage(rule, page) {
             if ( commitsMenu !== null )
                 return;
 
+            var menus        = document.getElementsByClassName("menu")[0],
+                alreadyAdded = false; 
+
+            for ( var i = 0; i < menus.children.length; i++ ) {
+                var menu = menus.children[i];
+
+                if ( menu.innerText.match(/^\s*Commits/) )
+                    return;
+
+                if ( ! menu.innerText.match(/^\s*Code/) )
+                    continue;
+
+                codeMenu = menu;
+
+                codeMenu.selected = codeMenu.className.match(/selected/) ? true : false;
+
+                switch(codeMenu.childNodes.length) {
+                    case 3:
+                        codeMenu.counter    = codeMenu.childNodes[2];
+                        codeMenu.numMatches = parseInt(codeMenu.counter.innerText);
+
+                        break;
+                    case 2:
+                        codeMenu.counter = htmlUtil.createSpan({
+                            cls: "counter"
+                        });
+
+                        codeMenu.appendChild(codeMenu.counter);
+
+                        codeMenu.numMatches = 0;
+                        break;
+                    default:
+                        console.warn("Not sure how to process code menu");
+                }
+            }
+
+            codeMenu.sync = htmlUtil.createSpan({
+                cls: "octicon octicon-sync",
+                style: {
+                    marginRight: "0px",
+                }
+            });
+
+            $(codeMenu.counter).html("");
+
+            codeMenu.counter.appendChild(htmlUtil.createTextNode( codeMenu.numMatches+" / " ));
+            codeMenu.counter.appendChild(codeMenu.sync);
+
             commitsMenu = addMenu("Commits", "git-commit");
             diffsMenu   = addMenu("Diffs", "diff");
 
-            var menu         = document.getElementsByClassName("menu")[0],
-                code         = menu.children[0],
-                selectedCode = code.className.match(/selected/) ? true : false;
-
-            menu.insertBefore(diffsMenu, code.nextSibling);
-            menu.insertBefore(commitsMenu, code.nextSibling);
+            menus.insertBefore(diffsMenu, codeMenu.nextSibling);
+            menus.insertBefore(commitsMenu, codeMenu.nextSibling);
 
             var deg   = 0,
-                menus = [ commitsMenu, diffsMenu ];
+                menus = [ codeMenu, commitsMenu, diffsMenu ];
 
             animateSync();
 
-            if ( ! selectedCode )
-                return;
-
             var stopAt = new Date().getTime() + 2000;
 
-            addSearchMsg();
+            if ( codeMenu.selected )
+                addSearchMsg();
 
             function addMenu(label, icon) {
                 var sync = 
@@ -737,7 +782,9 @@ function renderGitHubPage(rule, page) {
             var idata    = new sdes.gitsense.data.insight(rule, token),
                 branchId = "github:"+page.owner+"/"+page.repo+":"+githubRepo.default_branch,
                 href     = "/"+page.owner+"/"+page.repo+"?gitsense=insight#"+
-                           "b="+branchId+"&t=%TYPE%&q="+searchArgs.join("+");
+                           "b="+branchId+"&t=%TYPE%&q="+searchArgs.join("+"),
+                sabhref  = "/"+page.owner+"/"+page.repo+"?gitsense=insight#"+
+                           "&_t=%TYPE%&_q="+searchArgs.join("+");
 
             idata.getBranchHeads(
                 [branchId],
@@ -787,7 +834,7 @@ function renderGitHubPage(rule, page) {
             }
 
             function search(type, branchId, head, args) {
-                if ( type === "code" ) 
+                if ( type === "code" && codeMenu.selected )
                     $(searchMsg).text("Searching default branch with GitSense ...");
 
                 var _args = $.extend(true, [], args);
@@ -830,12 +877,20 @@ function renderGitHubPage(rule, page) {
                 function updateCodeSearch(summary) {
                     var total = summary.total;
 
+                    $(codeMenu.counter).html(
+                        codeMenu.numMatches+" / "+
+                        Number(total).toLocaleString("en")
+                    );
+
+                    if ( ! codeMenu.selected )
+                        return;
+
                     $(searchMsg).html(
                         "<a href="+href.replace("%TYPE%","code")+"+cs:true>"+
                             "GitSense found "+
                             Number(total).toLocaleString("en")+" "+
                             "code result"+(total === 1 ? "" : "s")+" "+
-                            "with case-sensitive on & camelCase off"+
+                            "with case-sensitive on & camelCase off."+
                         "</a>"
                     );
                 }
@@ -1471,7 +1526,9 @@ function renderGitLabPage(rule, page){
             var idata    = new sdes.gitsense.data.insight(rule, token),
                 branchId = "gitlab:"+owner+"/"+repo+":"+defaultBranch,
                 href     = "/"+owner+"/"+repo+"?gitsense=insight#"+
-                           "b="+branchId+"&t=%TYPE%&q="+searchArgs.join("+");
+                           "b="+branchId+"&t=%TYPE%&q="+searchArgs.join("+"),
+                sabhref  = "/"+owner+"/"+repo+"?gitsense=insight#"+
+                           "_t=%TYPE%&_q="+searchArgs.join("+");
 
             idata.getBranchHeads(
                 [branchId],
@@ -1565,51 +1622,44 @@ function renderGitLabPage(rule, page){
                 function updateCommitsSearch(summary) {
                     var total = summary.total;
 
-                    $(commitsBadge).html(
-                        commitMatches+" / "+
-                        //"<span class='fa fa-lightbulb-o' style='margin-left:2px'></span> "+
-                        total
-                    );
+                    $(commitsBadge).html(commitMatches+" / "+ total);
 
                     if ( currentSearch !== "commits" )
                         return;
 
                     $(searchMsg).html(
-                        "<a href="+href.replace("%TYPE%","commits")+">"+
+                        "<a href=\""+href.replace("%TYPE%", "commits")+"\">"+
                             "GitSense found "+total+" matching commit"+(total === 1 ? "" : "s")+" "+
-                            "on the "+defaultBranch+" branch."+
-                        "</a>"
+                            "on the "+defaultBranch+" branch"+
+                        "</a>.&nbsp; "+
+                        "<span class='fa fa-search' "+
+                            "style='margin-left:10px;margin-right:2px;;font-size:14px;'></span> "+
+                        "<a href=\""+sabhref.replace("%TYPE%", "commits")+"\">Search another branch.</a>"
                     );
                 }
 
                 function updateCodeSearch(summary) {
                     var total = summary.total;
 
-                    $(codeBadge).html(
-                        codeMatches+" / "+
-                        //"<span class='fa fa-lightbulb-o' style='margin-left:2px'></span> "+
-                        total
-                    );
+                    $(codeBadge).html(codeMatches+" / "+ total);
 
                     if ( currentSearch !== "code" )
                         return;
 
                     $(searchMsg).html(
-                        "<a href="+href.replace("%TYPE%","code")+"+cs:true>"+
+                        "<a href=\""+href.replace("%TYPE%", "code")+"+cs:true\">"+
                             "GitSense found "+total+" code result"+(total === 1 ? "" : "s")+" "+
                             "with case-sensitive on & camelCase off on the "+
-                            defaultBranch+" branch."+
-                        "</a>"
+                            defaultBranch+" branch"+
+                        "</a>.&nbsp; "+
+                        "<span class='fa fa-search' "+
+                            "style='margin-left:10px;margin-right:2px;;font-size:14px;'></span> "+
+                        "<a href=\""+sabhref.replace("%TYPE%", "code")+"+cs:true\">Search another branch.</a>"
                     );
                 }
 
                 function updateDiffsSearch(summary) {
                     var total = summary.total;
-
-                    $(diffsLink.badge).html(
-                        //"<span class='fa fa-lightbulb-o'></span> "+
-                        total
-                    );
 
                     diffsLink.setAttribute(
                         "href",
@@ -1628,6 +1678,7 @@ function renderGitSense(renderTo, rule, token, params) {
     if ( gitsenseIframe !== null ) {
         gitsenseIframe.parentNode.removeChild(gitsenseIframe);
         window.addEventListener("message", receiveMessage, false);
+        lastLastHeight = null;
         lastHeight = null;
     }
 

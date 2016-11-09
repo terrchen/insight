@@ -1,8 +1,8 @@
 {
-    "name": "GitSense",
+    "name": "GitSense Insight",
     "version": "0.5",
     "manifest_version": 2,
-    "description": "Advanced search and analytics for GitHub and GitLab",
+    "description": "Adds powerful search and code change analytics to GitHub and GitLab",
     "homepage_url": "https://gitsense.com/blog",
     "options_page": "options.html",
     "icons": {
