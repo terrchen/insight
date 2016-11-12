@@ -830,7 +830,14 @@ function renderGitHubPage(rule, page) {
 
             function renderNoSearch() {
                 $(commitsMenu.counter).text("N/A");
-                $(searchMsg).text("GitSense search not available");
+                $(codeMenu.counter).text(codeMenu.numMatches);
+                $(diffsMenu.counter).text("N/A");
+                $(searchMsg).html(
+                    "Unable to search default branch.&nbsp; "+
+                    "<a href="+window.location.origin+"/"+page.owner+"/"+page.repo+"?gitsense=insight>"+
+                    "GitSense Insight"+
+                    "</a> not available."
+                );
             }
 
             function search(type, branchId, head, args) {
@@ -1563,7 +1570,7 @@ function renderGitLabPage(rule, page){
                     if ( branch.indexedSource )  {
                         search("code", branchId, branch.head, searchArgs);
                     } else {
-                        $(codeBadge).html(commitMatches+" / NA");
+                        $(codeBadge).html(codeMatches+" / NA");
 
                         if ( searchMsg != null ) {
                             $(searchMsg).html(
@@ -1589,7 +1596,16 @@ function renderGitLabPage(rule, page){
             );
 
             function renderNoSearch() {
-                throw("update me");
+                $(codeBadge).html(codeMatches);
+                $(commitsBadge).html(commitMatches);
+                $(diffsLink.badge).html("N/A");
+
+                $(searchMsg).html(
+                    "Unable to search default branch.&nbsp; "+
+                    "<a href="+window.location.origin+"/"+owner+"/"+repo+"?gitsense=insight>"+
+                    "GitSense Insight"+
+                    "</a> not available."
+                );
             }
 
             function search(type, branchId, head, args) {
@@ -1661,6 +1677,8 @@ function renderGitLabPage(rule, page){
                 function updateDiffsSearch(summary) {
                     var total = summary.total;
 
+                    $(diffsLink.badge).html(total);
+
                     diffsLink.setAttribute(
                         "href",
                         href.replace("%TYPE%","diffs")
@@ -1678,7 +1696,6 @@ function renderGitSense(renderTo, rule, token, params) {
     if ( gitsenseIframe !== null ) {
         gitsenseIframe.parentNode.removeChild(gitsenseIframe);
         window.addEventListener("message", receiveMessage, false);
-        lastLastHeight = null;
         lastHeight = null;
     }
 
