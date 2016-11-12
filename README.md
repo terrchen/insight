@@ -1,9 +1,18 @@
 # GitSense Insight
-If you are not familiar with GitSense Insight, you can learn more about it at
 
-httph://gitsense.com/blog
+Enhanced Search and Code Change Analytics for GitHub and GitLab
 
-If you were just there, and you are here because you want to manually install the GitSense Chrome Extension or if you want to see what makes it tick, then you've come to the right place.  The source code is open sourced and is licensed under the MIT license, so you can do as you please, but be forewarned, the code structure will most likely change in the near future, to make it easier to develop for other browsers, like Firefox.
+https://gitsense.com/blog/gitsense-insight.html
+
+## About
+
+GitSense is a free and opened source Chrome extension and it significantly improves search and analytics in GitHub and GitLab
+
+![alt text](https://raw.githubusercontent.com/gitsense/insight/insight/images/seamless-search.gif)
+
+![alt text](https://raw.githubusercontent.com/gitsense/insight/insight/images/github-org.png)
+
+![alt text](https://raw.githubusercontent.com/gitsense/insight/insight/images/gitlab-group.png)
 
 ## Google Chrome Install Instructions
 
@@ -27,13 +36,5 @@ In the Chrome Extensions page, look for the "Developer mode" checkbox, which is 
 
 With the developer mode enabled, you'll find a button called "Load unpacked extensions..." near the top of the page.  Click on it, and select the path to the **chrome** directory that was mentioned in step 1.
 
-If all went as planned, you should find the GitSense Extension in your Chrome Extension page, which means you are now GitSense enabled.  
+If all went as planned, you should find the GitSense Extension in your Chrome Extension page, which means you are now GitSense enabled.
 
-Below is a very short list of repos that are GitSense ready that you can play around with.
-
-| GitHub | GitLab |
-| ------ | --------- |
-| https://github.com/twbs | https://gitlab.com/gitlab-org
-| https://github.com/google | 
-| https://github.com/facebook | 
-| https://github.com/angular | 
