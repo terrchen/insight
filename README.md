@@ -12,7 +12,7 @@ GitSense is a free and opened source Chrome extension and it significantly impro
 
 ![alt text](https://raw.githubusercontent.com/gitsense/insight/insight/images/github-org-shadow.png)
 
-![alt text](https://raw.githubusercontent.com/gitsense/insight/insight/images/gitlab-group.png)
+![alt text](https://raw.githubusercontent.com/gitsense/insight/insight/images/gitlab-group-shadow.png)
 
 ## Google Chrome Install Instructions
 
