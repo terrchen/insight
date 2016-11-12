@@ -1,14 +1,15 @@
 {
-    "name": "GitSense",
-    "version": "0.3",
+    "name": "GitSense Insight",
+    "version": "0.5.3",
     "manifest_version": 2,
-    "description": "Advanced search and code management metrics for Bitbucket, GitHub and GitHub Enterprise",
-    "homepage_url": "https://gitsense.github.io",
+    "description": "Adds enhanced search and code change analytics to GitHub and GitLab",
+    "homepage_url": "https://gitsense.com/blog",
     "options_page": "options.html",
     "icons": {
         "128": "images/icon-128.png"
     },
     "web_accessible_resources": [
+        "frame.html",
         "3rdparty/octicons/*"
     ],
     "background": {
@@ -19,11 +20,10 @@
         "<all_urls>"
     ],
     "permissions": [
-        "https://api.bitbucket.org/*",
         "https://api.github.com/*",
-        "https://api.gitsense.com/*",
-        "https://bitbucket.org/*",
         "https://github.com/*",
+        "https://gitlab.com/*",
+        "https://public.gitsense.com/*",
         "storage"
     ]
 }

@@ -5,34 +5,30 @@
 //
 sdes.config = {
     "routingRules" : [ 
-        { 
-            "matches": "https://bitbucket.org/*",
-            "host": {
-                "type": "bitbucket",
-                "api": "https://api.bitbucket.org",
-                "username": "",
-                "secret": ""
-            },
-            "gitsense": {
-                "api": "https://api.gitsense.com",
-                "hostId": "bitbucket",
-                "secret": "",
-                "commitDecorator": ""
-            }
-        },
         {
             "matches": "https://github.com/*",
             "host": {
                 "type": "github",
                 "api": "https://api.github.com",
-                "username": "",
-                "secret": ""
+                "secret": "",
+                "xFrameOptions": "DENY"
             },
             "gitsense": {
-                "api": "https://api.gitsense.com",
-                "hostId": "github",
+                "baseUrl": "https://public.gitsense.com",
+                "secret": ""
+            }
+        },
+        {
+            "matches": "https://gitlab.com/*",
+            "host": {
+                "type": "gitlab",
+                "api": "https://gitlab.com/api/v3",
                 "secret": "",
-                "commitDecorator": ""
+                "xFrameOptions": "DENY"
+            },
+            "gitsense": {
+                "baseUrl": "https://public.gitsense.com",
+                "secret": ""
             }
         }
     ]

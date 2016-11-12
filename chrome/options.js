@@ -12,7 +12,8 @@ function load() {
         saveErrorBody = document.getElementById("save-error"),
         newRuleButton = document.getElementById("new-rule-button"),
         restoreLink   = document.getElementById("restore"),
-        hostTypes     = [ "", "bitbucket", "github", "github-enterprise" ],
+        hostTypes     = ["", "github", "github-enterprise", "gitlab"],
+        xFrameOptions = ["DENY", "SAMEORIGIN"],
         htmlUtil      = new sdes.utils.html();
 
     restoreLink.onclick = restoreDefault;
@@ -104,12 +105,27 @@ function load() {
                     return html;
                 }
 
+                function getXFrameOptions() {
+                    var html = "<select id="+id+"-host-xFrameOptions>";
+
+                    for ( var i = 0; i < xFrameOptions.length; i++ ) {
+                        var option   = xFrameOptions[i],
+                            selected = option === rule.host.xFrameOptions ? "selected" : "";
+
+                        html += "<option "+selected+">"+option+"</option>";
+                    }
+
+                    html += "</select>";
+
+                    return html;
+                }
+
                 function getHostSettings() {
                     var html =
                         "<div class='block-header'>"+
                             "<span id="+id+"-host-title "+
                                 "style='font-weight:bold;'>"+
-                                "Bitbucket, GitHub and GitHub Enterprise"+
+                                "GitHub, GitHub Enterprise, and GitLab"+
                             "</span>"+
                         "</div>"+
                         "<div class='block-body'>"+
@@ -117,8 +133,8 @@ function load() {
                                 "<tr>"+
                                     "<td class=field-cell>Type</td>"+
                                     "<td class=field-cell>API</td>"+
-                                    "<td class=field-cell>Username</td>"+
-                                    "<td class=field-cell>Access token / API key</td>"+
+                                    "<td class=field-cell>X-Frame-Options</td>"+
+                                    "<td class=field-cell>Access token</td>"+
                                 "</tr>"+
                                 "<tr>"+
                                     "<td class=field-cell>"+getHostTypes()+"</td>"+
@@ -126,21 +142,15 @@ function load() {
                                         "<input type=text "+
                                             "id="+id+"-host-api "+
                                             "value='"+rule.host.api+"' "+
-                                            "style='width:200px'>"+
+                                            "style='width:270px'>"+
                                     "</td>"+
-                                    "<td class=field-cell>"+
-                                        "<input type=text "+
-                                            "id="+id+"-host-username "+
-                                            "value='"+rule.host.username+"' "+
-                                            "placeholder=Optional "+
-                                            "style='width:100px;'>"+
-                                    "</td>"+
+                                    "<td class=field-cell>"+getXFrameOptions()+"</td>"+
                                     "<td class=field-cell style='padding-right:0px;'>"+
-                                        "<input type=text "+
+                                        "<input type=password "+
                                             "id="+id+"-host-secret "+
                                             "value='"+rule.host.secret+"' "+
                                             "placeholder=Optional "+
-                                            "style='width:287px;'>"+
+                                            "style='width:210px;'>"+
                                     "</td>"+
                                 "</tr>"+
                             "</table>"+
@@ -158,40 +168,33 @@ function load() {
                         "<div class='block-body'>"+
                             "<table>"+
                                 "<tr>"+
-                                    "<td class=field-cell>Host identifier</td>"+
-                                    "<td class=field-cell>API</td>"+
+                                    "<td class=field-cell>Base URL</td>"+
                                     "<td class=field-cell>Access token</td>"+
                                 "</tr>"+
                                 "<tr>"+
                                     "<td class=field-cell>"+
                                         "<input type=text "+
-                                            "id="+id+"-gitsense-hostId "+
-                                            "value='"+rule.gitsense.hostId+"' "+
-                                            "style='width:117px'>"+
-                                    "</td>"+
-                                    "<td class=field-cell>"+
-                                        "<input type=text "+
-                                            "id="+id+"-gitsense-api "+
-                                            "value='"+rule.gitsense.api+"' "+
-                                            "style='width:200px'>"+
+                                            "id="+id+"-gitsense-baseUrl "+
+                                            "value='"+rule.gitsense.baseUrl+"' "+
+                                            "style='width:415px'>"+
                                     "</td>"+
                                     "<td class=field-cell style='padding-right:0px;'>"+
-                                        "<input type=text "+
+                                        "<input type=password "+
                                             "id="+id+"-gitsense-secret "+
                                             "value='"+rule.gitsense.secret+"' "+
                                             "placeholder=Optional "+
-                                            "style='width:420px;'>"+
+                                            "style='width:350px;'>"+
                                     "</td>"+
                                 "</tr>"+
                             "</table>"+
-                            "<div style='padding-top:10px;padding-bottom:5px;'>"+
-                                "Commit decorator"+
-                            "</div>"+
-                            "<input type=text "+
-                                "id="+id+"-gitsense-commitDecorator "+
-                                "value='"+rule.gitsense.commitDecorator+"' "+
-                                "placeholder=Optional "+
-                                "style='width:809px;padding-right:0px;'>"+
+                            //"<div style='padding-top:10px;padding-bottom:5px;'>"+
+                            //    "Commit decorator"+
+                            //"</div>"+
+                            //"<input type=text "+
+                            //    "id="+id+"-gitsense-commitDecorator "+
+                            //    "value='"+rule.gitsense.commitDecorator+"' "+
+                            //    "placeholder=Optional "+
+                            //    "style='width:809px;padding-right:0px;'>"+
                         "</div>";
                     return html;
                 }
@@ -249,7 +252,7 @@ function load() {
 
                                     idToInput[hostId] = input;
 
-                                    if ( hostKey === "type" )
+                                    if ( hostKey === "type" || hostKey === "xFrameOptions" )
                                         input.onchange = check;
                                     else
                                         input.onkeyup = check;
@@ -429,28 +432,29 @@ function load() {
                     }
                 }
    
-                // See if the order has changed
-                var bodies = document.getElementsByClassName("rule");
+                //// See if the order has changed
+                //var bodies = document.getElementsByClassName("rule");
 
-                for ( var i = 0; i < bodies.length; i++ ) {
-                    var idx = parseInt(bodies[i].id.split("-")[1]);
+                //for ( var i = 0; i < bodies.length; i++ ) {
+                //    var idx = parseInt(bodies[i].id.split("-")[1]);
 
-                    if ( i === idx )
-                        continue;
+                //    if ( i === idx )
+                //        continue;
 
-                    enableSave();
-                    return;
-                }
+                //    enableSave();
+                //    return;
+                //}
 
-                saveButton.style.cursor = "default";
-                saveButton.disabled = true;
-                saveButton.onclick = null;
+                //saveButton.style.cursor = "default";
+                //saveButton.disabled = true;
+                //saveButton.onclick = null;
+                saveButton.onclick  = clickedSave;
 
-                function enableSave() {
-                    saveButton.style.cursor = "pointer";
-                    saveButton.disabled = false;
-                    saveButton.onclick  = clickedSave;
-                }
+                //function enableSave() {
+                //    saveButton.style.cursor = "pointer";
+                //    saveButton.disabled = false;
+                //    saveButton.onclick  = clickedSave;
+                //}
             }
 
             function clickedSave() {
@@ -522,7 +526,7 @@ function load() {
                                 function() { 
                                     statusBody.textContent   = ""; 
                                     statusBody.style.display = "none";
-                                    saveButton.disabled      = true;
+                                    //saveButton.disabled      = true;
                                     update(newConfig);
                                 }, 
                                 750
@@ -693,7 +697,7 @@ function load() {
 
                     for ( var i = 0; i < rules.length; i++ ) {
                         var rule = rules[i],
-                            urls = [ rule.matches, rule.host.api, rule.gitsense.api ];
+                            urls = [ rule.matches, rule.host.api, rule.gitsense.baseUrl ];
 
                         for ( var j = 0; j < urls.length; j++ ) {
                             var a = document.createElement("a");
@@ -710,15 +714,12 @@ function load() {
                 var rule = {
                     matches: "",
                     gitsense: {
-                        api: "",
-                        hostId: "",
-                        secret: "",
-                        commitDecorator: ""
+                        baseUrl: "",
+                        secret: ""
                     },
                     host: {
                         type: "",
                         api: "",
-                        username: "",
                         secret: ""
                     }
                 },

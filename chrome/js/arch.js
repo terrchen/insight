@@ -8,44 +8,22 @@
 // to follow. And as you can probably guess, the nesting levels, also represents
 // directory levels in most cases.
 var sdes = {
-    bitbucket: {
-        comp: {},
-        data: {},
-        pages: {},
-        ui: {
-            input: {}
-        },
-        utils: {}
-    },
     cache: {
         gitsense: { 
-            data: {
-                branch: {
-                    heads: {}
-                },
-                commits: {}
-            }
+            data: {}
         }
     },
     events: {},
     gitsense: {
-        data: {
-            branch: {}
-        },
-        ui: {
-            codechurn: {},
-            trees: {}
-        }
+        data: {}
     },
     github: {
-        comp: {},
         data: {},
-        pages: {},
-        ui: {
-            input: {}
-        },
         utils: {}
     },
-    ui: {},
+    gitlab: {
+        data: {},
+        utils: {}
+    },
     utils: {}
 };

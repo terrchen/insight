@@ -6,6 +6,10 @@ sdes.utils.html = function() {
         return createBasicElement("br");
     }
 
+    this.createHeader3 = function(params) {
+        return createBasicElement("h3", params);
+    }
+
     this.createDiv = function(params) {
         return createBasicElement("div", params);
     }
@@ -200,8 +204,14 @@ sdes.utils.html = function() {
             $(link).html(params.html);
         }
 
-        if ( ! varUtil.isNoU(params.append) )
-            link.appendChild(params.append);
+        if ( ! varUtil.isNoU(params.append) ) {
+            if ( params.append.length !== undefined ) {
+                for ( var i = 0; i < params.append.length; i++ )
+                    link.appendChild(params.append[i]);
+            } else {
+                link.appendChild(params.append);
+            }
+        }
     
         if ( ! varUtil.isNoU(params.id) )
             link.id = params.id;
