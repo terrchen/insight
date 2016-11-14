@@ -1174,10 +1174,19 @@ function renderGitLabPage(rule, page){
                 stopAnimation = true;
 
                 if ( error !== undefined ) {
-                    if ( error.responseText.toLowerCase() !== "unauthorized" )
+                    if (
+                        error.responseText.toLowerCase() !== "unauthorized" &&
+                        ! error.responseText.match(/access token/) && 
+                        ! error.responseText.match(/No route to host/)
+                    ) {
                         throw error.responseText;
-    
-                    renderUnauthorized("gitlab", renderTo, rule, page);
+                    }
+
+                    if ( error.responseText.match(/No route to host/) )
+                        renderNoRouteToHost(renderTo, error.responseText);
+                    else
+                        renderUnauthorized("gitlab", renderTo, rule, page);
+
                     return;
                 }
 
@@ -1556,7 +1565,7 @@ function renderGitLabPage(rule, page){
 
                     if ( branch.indexedCommits ) {
                         search("commits", branchId, branch.head, searchArgs);
-                    } else {
+                    } else if ( currentSearch === "commits" ) {
                         $(commitsBadge).html(commitMatches+" / NA");
 
                         if ( searchMsg != null ) {
@@ -1569,7 +1578,7 @@ function renderGitLabPage(rule, page){
 
                     if ( branch.indexedSource )  {
                         search("code", branchId, branch.head, searchArgs);
-                    } else {
+                    } else if ( currentSearch === "code" ) {
                         $(codeBadge).html(codeMatches+" / NA");
 
                         if ( searchMsg != null ) {
@@ -1584,13 +1593,6 @@ function renderGitLabPage(rule, page){
                         search("diffs", branchId, branch.head, searchArgs);
                     } else {
                         $(diffsLink.badge).html("NA");
-
-                        if ( searchMsg != null ) {
-                            $(searchMsg).html(
-                                "The diffs on the "+defaultBranch+" branch has not been indexed, "+
-                                "unable to perform a GitSense diffs search."
-                            );
-                        }
                     }
                 }
             );
@@ -2013,6 +2015,23 @@ function createOverlayWindow(href, targetOrigin, max) {
     return { title: title, iframe: iframe };
 }
 
+function renderNoRouteToHost(renderTo, error) {
+    $(renderTo).html(
+        "<div style='padding:30px;padding-top:10px;width:800px;line-height:1.5;font-size:18px;'>"+
+            "<h2>No route to host</h2>"+
+            "<p>"+
+                "The GitSense server returned the following error:\n"+
+            "</p>"+
+            "<pre style='margin-top:20px'>"+error+"</pre>"+
+            "<p>"+
+                "Are your settings correct?&nbsp; "+
+                "To update the browser's GitSense settings, copy and the paste the following URI:"+
+            "</p>"+
+            "<pre style='margin-top:20px'>chrome-extension://"+chrome.runtime.id+"/options.html</pre>"+
+        "</div>"
+    );
+}
+
 function renderUnauthorized(type, renderTo, rule, page) {
     var token = type === "gitlab" ? "GitLab access token" : "GitHub personal token";
 
@@ -2027,6 +2046,14 @@ function renderUnauthorized(type, renderTo, rule, page) {
                 "page, copy and the paste the following URI:"+
             "</p>"+
             "<pre style='margin-top:20px'>chrome-extension://"+chrome.runtime.id+"/options.html</pre>"+
+        (
+            type === "github"  ?
+                "" :
+                "<p style='font-size:18px;margin-top:20px;'>"+
+                    "Alternatively, if you have GitSense admin privileges, you can setup a common GitLab "+
+                    "access token on the GitSense server."+
+                "</p>"
+        )+
         "</div>"
     );
 }
