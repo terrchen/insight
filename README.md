@@ -10,9 +10,11 @@ GitSense Insight is an opened source Chrome extension, which adds search and cod
 
 ![alt text](https://raw.githubusercontent.com/gitsense/insight/insight/images/seamless-search.gif)
 
-### Find things that only GitSense can
+### Search by SHA
 
 ![alt text](https://raw.githubusercontent.com/gitsense/insight/insight/images/search-by-sha-highlighted-border.png)
+
+### Search forked repos
 
 ![alt text](https://raw.githubusercontent.com/gitsense/insight/insight/images/search-forked-repos-highlighted-border.png)
 
