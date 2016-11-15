@@ -20,6 +20,8 @@ GitSense Insight is an opened source Chrome extension, which adds search and cod
 
 ### Group and Org level insight
 
+Search and analyze any branch, from any repo and in any combination.
+
 ![alt text](https://raw.githubusercontent.com/gitsense/insight/insight/images/github-org.png)
 
 ![alt text](https://raw.githubusercontent.com/gitsense/insight/insight/images/gitlab-group.png)
