@@ -780,7 +780,7 @@ function renderGitHubPage(rule, page) {
                     id: "gitsense-search-msg",
                     html: "Loading GitSense Insight ...",
                     style: {
-                        marginTop: sortBar === null ? null : "5px",
+                        marginTop: sortBar === null ? null : "10px",
                         marginBottom: sortBar === null ? "20px" : null
                     }
                 });
@@ -957,7 +957,12 @@ function renderGitHubPage(rule, page) {
                             "GitSense found "+
                             Number(total).toLocaleString("en")+" "+
                             "commit"+(total === 1 ? "" : "s")+" on the default branch."+
-                        "</a>"
+                        "</a>"+
+                        "<span class='octicon octicon-search' "+
+                            "style='margin-left:10px;margin-right:2px;"+
+                            "position:relative;top:-2px;"+
+                            "font-size:14px;'></span> "+
+                        "<a href=\""+sabhref.replace("%TYPE%", "commits")+"\">Search another branch.</a>"
                     );
                 }
 
@@ -978,7 +983,12 @@ function renderGitHubPage(rule, page) {
                             Number(total).toLocaleString("en")+" "+
                             "code result"+(total === 1 ? "" : "s")+" "+
                             "with case-sensitive on & camelCase off."+
-                        "</a>"
+                        "</a>"+
+                        "<span class='octicon octicon-search' "+
+                            "style='margin-left:10px;margin-right:2px;"+
+                            "position:relative;top:-2px;"+
+                            "font-size:14px;'></span> "+
+                        "<a href=\""+sabhref.replace("%TYPE%", "code")+"\">Search another branch.</a>"
                     );
                 }
 

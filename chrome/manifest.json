@@ -1,6 +1,6 @@
 {
     "name": "GitSense Insight",
-    "version": "1.0",
+    "version": "1.1",
     "manifest_version": 2,
     "description": "Makes searching in GitHub and GitLab better",
     "homepage_url": "https://gitsense.com",
