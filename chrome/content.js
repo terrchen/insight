@@ -620,16 +620,15 @@ function renderGitHubPage(rule, page) {
 
                 switch(menu.childNodes.length) {
                     case 3:
-                        menu.counter = menu.childNodes[2];
+                        menu.counter    = menu.childNodes[2];
+                        menu.numMatches = menu.innerText.replace(/^([^\d]+)(.+)$/, "$2");
 
                         if ( ! menu.counter.className.match(/counter/) )  {
                             setTimeout(addSearchItems, 100);
                             return;
                         }
 
-                        menu.numMatches = parseInt(menu.counter.innerText);
-
-                        if ( isNaN(menu.numMatches) )
+                        if ( isNaN(parseInt(menu.numMatches.replace(",",""))) )
                             menu.numMatches = 0; 
 
                         break;
