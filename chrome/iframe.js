@@ -100,7 +100,7 @@ function renderGitSenseIframe() {
 
     function getFrameSize() { 
         iframe.contentWindow.postMessage("height", params.targetOrigin);
-        setTimeout(getFrameSize, 250);
+        setTimeout(getFrameSize, 500);
     }
 }
 

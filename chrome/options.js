@@ -432,29 +432,29 @@ function load() {
                     }
                 }
    
-                //// See if the order has changed
-                //var bodies = document.getElementsByClassName("rule");
+                // See if the order has changed
+                var bodies = document.getElementsByClassName("rule");
 
-                //for ( var i = 0; i < bodies.length; i++ ) {
-                //    var idx = parseInt(bodies[i].id.split("-")[1]);
+                for ( var i = 0; i < bodies.length; i++ ) {
+                    var idx = parseInt(bodies[i].id.split("-")[1]);
 
-                //    if ( i === idx )
-                //        continue;
+                    if ( i === idx )
+                        continue;
 
-                //    enableSave();
-                //    return;
-                //}
+                    enableSave();
+                    return;
+                }
 
-                //saveButton.style.cursor = "default";
-                //saveButton.disabled = true;
-                //saveButton.onclick = null;
+                saveButton.style.cursor = "default";
+                saveButton.disabled = true;
+                saveButton.onclick = null;
                 saveButton.onclick  = clickedSave;
 
-                //function enableSave() {
-                //    saveButton.style.cursor = "pointer";
-                //    saveButton.disabled = false;
-                //    saveButton.onclick  = clickedSave;
-                //}
+                function enableSave() {
+                    saveButton.style.cursor = "pointer";
+                    saveButton.disabled = false;
+                    saveButton.onclick  = clickedSave;
+                }
             }
 
             function clickedSave() {
@@ -625,7 +625,7 @@ function load() {
 
                                         if ( 
                                             value === "" &&
-                                            (gitsenseKey === "hostId" || gitsenseKey === "api")
+                                            (gitsenseKey === "baseUrl")
                                         ) {
                                             showError(input);
 
@@ -637,11 +637,11 @@ function load() {
                                             continue;
                                         }
 
-                                        if ( gitsenseKey === "api" && ! value.match(/^https*:\/\//) ) {
+                                        if ( gitsenseKey === "baseUrl" && ! value.match(/^https*:\/\//) ) {
                                             showError(input);
 
                                             errors.push(
-                                                "Invalid "+key+" API URL in rule "+ruleNum
+                                                "Invalid "+key+" base URL in rule "+ruleNum
                                             );
 
                                             continue;
@@ -681,7 +681,7 @@ function load() {
                     $(saveErrorBody).show();
 
                     var html = 
-                        "<strong>Page Rule Errors</strong>"+
+                        "<strong>Page rule errors</strong>"+
                         "<ul>";
 
                     for ( var i = 0; i < errors.length; i++ )
@@ -751,6 +751,7 @@ function load() {
         chrome.storage.local.remove(
             keys,
             function() {
+                $(saveErrorBody).hide();
                 update(sdes.config);
             }
         ) 

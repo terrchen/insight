@@ -1,9 +1,9 @@
 {
     "name": "GitSense Insight",
-    "version": "0.5.4",
+    "version": "1.0",
     "manifest_version": 2,
-    "description": "Adds enhanced search and code change analytics to GitHub and GitLab",
-    "homepage_url": "https://gitsense.com/blog",
+    "description": "Makes searching in GitHub and GitLab better",
+    "homepage_url": "https://gitsense.com",
     "options_page": "options.html",
     "icons": {
         "128": "images/icon-128.png"

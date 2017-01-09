@@ -2,7 +2,7 @@
 
 ## About
 
-GitSense Insight is an opened source Chrome extension for GitHub and GitLab.  And without exaggerating, significantly improves search and code change analytics in GitHub and GitLab.  To learn how, please visit https://gitsense.com/blog/gitsense-insight.html for more information.
+GitSense Insight is an opened source browser extension for Chrome and it makes searching in GitHub and GitLab better.  GitSense helps you find answers and to learn how, make sure to visit https://gitsense.com for more information.
 
 ## Quick Feature Highlights
 

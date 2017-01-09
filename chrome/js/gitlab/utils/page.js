@@ -106,6 +106,9 @@ sdes.gitlab.utils.page = function(rule) {
             repo      = names.shift(),
             home      = names.length === 0 ? true : false,
             search    = names.length !== 0 && names[0] === "search" ? true : false,
+            mr        = names.length !== 0 && names[0] === "merge_requests" ? true : false,
+            mrNum     = mr && names.length > 1 ? names[1] : 0,
+            mrPage    = mrNum !== 0 && names.length > 2 ? names[2] : null,
             show      = window.location.search.match(/gitsense=insight/) ? true : false,
             stopAt    = new Date().getTime() + 1000,
             trackerId = "gitsense-content-tracker",
@@ -168,7 +171,8 @@ sdes.gitlab.utils.page = function(rule) {
                 repo: repo,
                 show: show,
                 navLinks: navLinks,
-                content: contentElems[0]
+                content: contentElems[0],
+                mergeRequest: mr ? { number: mrNum, page: mrPage } : null 
             });
         }
     }

@@ -6,6 +6,9 @@ sdes.github.utils.page = function(rule) {
     this.parse = function(callback) {
         var names = window.location.pathname.replace(/^\/|\/$/, "").split(/\//);
 
+        if ( names[names.length - 1] === "" )
+            names.pop();
+
         if ( names.length !== 1 && names[0] !== "orgs" ) {
             if ( names.length > 1 )
                 parseRepo(names, callback);
@@ -64,11 +67,21 @@ sdes.github.utils.page = function(rule) {
                 return;
             }
 
+            var container = null;
+
+            for ( var i = 0; i < containers.length; i++ )  {
+                if ( ! containers[i].className.match(/org-profile/) )
+                    continue;
+
+                container = containers[i];
+                break;
+            }
+
             callback({
                 type: "org",
                 org: name,
                 tabs: orgElems[0],
-                container: containers[2],
+                container: container,
                 show: show
             });
         }

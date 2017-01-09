@@ -15,6 +15,7 @@ var lastLocation        = null,
     overlayWindow       = null,
     resize              = null,
     peekWidth           = 400,
+    origPeekWidth       = peekWidth,
     gitsenseIframe      = null,
     gitsenseFrameId     = "gitsense-content-iframe",
     lastPageChangedTime = null;
@@ -426,13 +427,21 @@ function renderGitHubPage(rule, page) {
         }
 
         function createGitSenseBody() {
-            var renderTo = htmlUtil.createDiv();
+            var renderTo = htmlUtil.createDiv(),
+                container;
+
+            for ( var i = 0; i < containers.length; i++ ) {
+                if ( ! containers[i].className.match(/experiment-repo-nav/) )
+                    continue;
+
+                container = containers[i];
+            }
 
             header.style.width        = "100%";
             header.style.paddingLeft  = "20px";
             header.style.paddingRight = "20px";
 
-            containers[3].parentNode.appendChild(renderTo);
+            container.parentNode.appendChild(renderTo);
             pageHead.style.marginBottom = "5px";
 
             var tabBody = page.tabs.parentNode;
@@ -579,9 +588,9 @@ function renderGitHubPage(rule, page) {
         }
 
         function addSearchItems() {
-            commitsMenu = document.getElementById("gitsense-search-menu-commits");
+            diffsMenu = document.getElementById("gitsense-search-menu-diffs");
 
-            if ( commitsMenu !== null )
+            if ( diffsMenu !== null )
                 return;
 
             var menus        = document.getElementsByClassName("menu")[0],
@@ -590,53 +599,72 @@ function renderGitHubPage(rule, page) {
             for ( var i = 0; i < menus.children.length; i++ ) {
                 var menu = menus.children[i];
 
-                if ( menu.innerText.match(/^\s*Commits/) )
+                if ( menu.innerText.match(/^\s*Diffs/) )
                     return;
 
-                if ( ! menu.innerText.match(/^\s*Code/) )
+                if ( ! menu.innerText.match(/^\s*(Code|Commits)/) )
                     continue;
 
-                codeMenu = menu;
+                if ( menu.innerText.match(/Code/) )
+                    codeMenu = menu;
+                else if ( menu.innerText.match(/Commits/) ) 
+                    commitsMenu = menu;
 
-                codeMenu.selected = codeMenu.className.match(/selected/) ? true : false;
+                menu.selected = menu.className.match(/selected/) ? true : false;
+            }
 
-                switch(codeMenu.childNodes.length) {
+            var temp = [ codeMenu, commitsMenu ];
+
+            for ( var i = 0; i < temp.length; i++ ) {
+                var menu = temp[i];
+
+                switch(menu.childNodes.length) {
                     case 3:
-                        codeMenu.counter    = codeMenu.childNodes[2];
-                        codeMenu.numMatches = parseInt(codeMenu.counter.innerText);
+                        menu.counter    = menu.childNodes[2];
+                        menu.numMatches = menu.innerText.replace(/^([^\d]+)(.+)$/, "$2");
+
+                        if ( ! menu.counter.className.match(/counter/) )  {
+                            setTimeout(addSearchItems, 100);
+                            return;
+                        }
+
+                        if ( isNaN(parseInt(menu.numMatches.replace(",",""))) )
+                            menu.numMatches = 0; 
 
                         break;
                     case 2:
-                        codeMenu.counter = htmlUtil.createSpan({
+                        menu.counter = htmlUtil.createSpan({
                             cls: "counter"
                         });
 
-                        codeMenu.appendChild(codeMenu.counter);
+                        menu.appendChild(menu.counter);
 
-                        codeMenu.numMatches = 0;
+                        menu.numMatches = 0;
                         break;
                     default:
                         console.warn("Not sure how to process code menu");
                 }
             }
 
-            codeMenu.sync = htmlUtil.createSpan({
-                cls: "octicon octicon-sync",
-                style: {
-                    marginRight: "0px",
-                }
-            });
+            for ( var i = 0; i < temp.length; i++ ) {
+                var menu = temp[i];
 
-            $(codeMenu.counter).html("");
+                menu.sync = htmlUtil.createSpan({
+                    cls: "octicon octicon-sync",
+                    style: {
+                        marginRight: "0px",
+                    }
+                });
 
-            codeMenu.counter.appendChild(htmlUtil.createTextNode( codeMenu.numMatches+" / " ));
-            codeMenu.counter.appendChild(codeMenu.sync);
+                $(menu.counter).html("");
 
-            commitsMenu = addMenu("Commits", "git-commit");
-            diffsMenu   = addMenu("Diffs", "diff");
+                menu.counter.appendChild(htmlUtil.createTextNode( menu.numMatches+" / " ));
+                menu.counter.appendChild(menu.sync);
+            }
 
-            menus.insertBefore(diffsMenu, codeMenu.nextSibling);
-            menus.insertBefore(commitsMenu, codeMenu.nextSibling);
+            diffsMenu = addMenu("Diffs", "diff");
+
+            menus.insertBefore(diffsMenu, commitsMenu.nextSibling);
 
             var deg   = 0,
                 menus = [ codeMenu, commitsMenu, diffsMenu ];
@@ -646,7 +674,9 @@ function renderGitHubPage(rule, page) {
             var stopAt = new Date().getTime() + 2000;
 
             if ( codeMenu.selected )
-                addSearchMsg();
+                addCodeSearchMsg();
+            else if ( commitsMenu.selected )
+                addCommitsSearchMsg();
 
             function addMenu(label, icon) {
                 var sync = 
@@ -686,7 +716,45 @@ function renderGitHubPage(rule, page) {
                 return menu;
             }
 
-            function addSearchMsg() {
+            function addCommitsSearchMsg() {
+                if ( new Date().getTime() > stopAt )
+                    return;
+
+                var searchResults = document.getElementById("commit_search_results"),
+                    blankElems    = document.getElementsByClassName("blankslate"),
+                    sortElems     = document.getElementsByClassName("sort-bar"),
+                    sortBar       = null,
+                    blankSlate    = null;
+
+                if ( sortElems !== null && sortElems.length !== 0  )
+                    sortBar = sortElems[0];
+
+                if ( blankElems !== null && blankElems.length !== 0 )
+                    blankSlate = blankElems[0];
+
+                if ( searchResults === null && sortBar === null && blankSlate === null ) {
+                    setTimeout(addCommitsSearchMsg, 50);
+                    return;
+                }
+
+                searchMsg = htmlUtil.createDiv({
+                    id: "gitsense-search-msg",
+                    html: "Loading GitSense Insight ...",
+                    style: {
+                        marginTop: sortBar === null ? null : "5px",
+                        marginBottom: sortBar === null ? "15px" : null
+                    }
+                });
+
+                if ( sortBar !== null )
+                    sortBar.appendChild(searchMsg);
+                else if ( searchResults !== null )
+                    searchResults.parentNode.insertBefore(searchMsg, searchResults);
+                else if ( blankSlate !== null )
+                    blankSlate.parentNode.insertBefore(searchMsg, blankSlate);
+            }
+
+            function addCodeSearchMsg() {
                 if ( new Date().getTime() > stopAt )
                     return;
 
@@ -704,7 +772,7 @@ function renderGitHubPage(rule, page) {
                     blankSlate = blankElems[0];
 
                 if ( searchResults === null && sortBar === null && blankSlate === null ) {
-                    setTimeout(addSearchMsg, 50);
+                    setTimeout(addCodeSearchMsg, 50);
                     return;
                 }
 
@@ -803,12 +871,10 @@ function renderGitHubPage(rule, page) {
                         return;
                     }
 
-                    if ( branch.indexedCommits ) {
+                    if ( branch.indexedCommits )
                         search("commits", branchId, branch.head, searchArgs);
-                    } else {
-                        $(commitsMenu.counter).text("N/A");
-                        commitsMenu.sync = null;
-                    }
+                    else
+                        $(searchMsg).text("GitSense commits search is currently not available.");
 
                     if ( branch.indexedDiffs) {
                         search("diffs", branchId, branch.head, searchArgs);
@@ -829,7 +895,7 @@ function renderGitHubPage(rule, page) {
             }
 
             function renderNoSearch() {
-                $(commitsMenu.counter).text("N/A");
+                $(commitsMenu.counter).text(commitsMenu.numMatches);
                 $(codeMenu.counter).text(codeMenu.numMatches);
                 $(diffsMenu.counter).text("N/A");
                 $(searchMsg).html(
@@ -842,6 +908,8 @@ function renderGitHubPage(rule, page) {
 
             function search(type, branchId, head, args) {
                 if ( type === "code" && codeMenu.selected )
+                    $(searchMsg).text("Searching default branch with GitSense ...");
+                else if ( type === "commits" && commitsMenu.selected )
                     $(searchMsg).text("Searching default branch with GitSense ...");
 
                 var _args = $.extend(true, [], args);
@@ -856,10 +924,13 @@ function renderGitHubPage(rule, page) {
                     1,
                     0,
                     function(results, error) {
-                        if ( error !== undefined )
+                        if ( error !== undefined && ! error.responseText.match(/No search arguments/) ) 
                             throw error.responseText;
- 
-                        var summary = results.search[branchId];
+
+                        var summary = 
+                                error === undefined ? 
+                                    results.search[branchId] :
+                                    { total: 0 };
 
                         if ( type === "commits" )
                             updateCommitsSearch(summary);
@@ -871,14 +942,23 @@ function renderGitHubPage(rule, page) {
                 );
 
                 function updateCommitsSearch(summary) {
-                    commitsMenu.sync = null;
+                    var total = summary.total;
 
-                    commitsMenu.setAttribute(
-                        "href",
-                        href.replace(/%TYPE%/,"commits")
+                    $(commitsMenu.counter).html(
+                        commitsMenu.numMatches+" / "+
+                        Number(total).toLocaleString("en")
                     );
 
-                    $(commitsMenu.counter).text(Number(summary.total).toLocaleString("en"));
+                    if ( ! commitsMenu.selected )
+                        return;
+
+                    $(searchMsg).html(
+                        "<a href="+href.replace(/%TYPE%/, "commits")+">"+
+                            "GitSense found "+
+                            Number(total).toLocaleString("en")+" "+
+                            "commit"+(total === 1 ? "" : "s")+" on the default branch."+
+                        "</a>"
+                    );
                 }
 
                 function updateCodeSearch(summary) {
@@ -1166,6 +1246,8 @@ function renderGitLabPage(rule, page){
         
         if ( page.show ) 
             renderTo = createGitSenseBody();
+        else if ( page.mergeRequest !== null && page.mergeRequest.page === "commits" )
+            updateMergeCommitsLinks();
 
         new sdes.gitsense.data.auth(rule).getTempToken(
             page.owner,
@@ -1196,10 +1278,8 @@ function renderGitLabPage(rule, page){
                     Number(numIndexedBranches).toLocaleString("en")
                 );
 
-                if ( page.search || ! page.show ) {
-                    updateSearch(new Date().getTime() + 2000);
+                if ( page.search || ! page.show )
                     return;
-                }
 
                 var params = {
                     id: "main",
@@ -1342,6 +1422,41 @@ function renderGitLabPage(rule, page){
                 page.navLinks[0].appendChild(list);
 
             return insightNavLink;
+        }
+
+        function updateMergeCommitsLinks(startedAt) {
+            if ( startedAt === undefined )
+                startedAt = new Date().getTime();
+            else if ( new Date().getTime() - startedAt > 5000 )
+                throw("Couldn't find any commit links, giving up");
+
+            var titles     = document.getElementsByClassName("commit-row-message"),
+                shortLinks = document.getElementsByClassName("commit-short-id");
+
+            if ( titles.length === 0 ) {
+                setTimeout(function(){ updateMergeCommitsLinks(startedAt); }, 100);
+                return;
+            }
+
+            for ( var i = 0; i < titles.length; i++ ) {
+                var title = titles[i];
+
+                if ( title.tagName !== "A" )
+                    continue;
+
+                updateLink(title);
+            }
+
+            function updateLink(link) {
+                var href = link.href;
+
+                link.removeAttribute("href");
+                link.style.cursor = "pointer";
+
+                link.onclick = function()  {
+                    openGitSenseWindow(href);
+                }
+            }
         }
     }
 
@@ -1830,6 +1945,14 @@ function createOverlayWindow(href, targetOrigin, max) {
         _peekWidth  = max ? 15 : peekWidth,
         titleHeight = 30;
 
+    if ( 
+        _peekWidth === origPeekWidth && 
+        width - _peekWidth < 1100 &&
+        width - 1100 > 0 
+    ) {
+        _peekWidth = width - 1100;
+    }
+
     overlayWindow = document.createElement("body");
     overlayWindow.style.width  = (width - _peekWidth)+"px";
     overlayWindow.style.height = height+"px";
@@ -2057,3 +2180,4 @@ function renderUnauthorized(type, renderTo, rule, page) {
         "</div>"
     );
 }
+
