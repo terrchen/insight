@@ -724,7 +724,8 @@ function renderGitHubPage(rule, page) {
                     blankElems    = document.getElementsByClassName("blankslate"),
                     sortElems     = document.getElementsByClassName("sort-bar"),
                     sortBar       = null,
-                    blankSlate    = null;
+                    blankSlate    = null,
+                    tabsBody      = null;
 
                 if ( sortElems !== null && sortElems.length !== 0  )
                     sortBar = sortElems[0];
@@ -742,7 +743,7 @@ function renderGitHubPage(rule, page) {
                     html: "Loading GitSense Insight ...",
                     style: {
                         marginTop: sortBar === null ? null : "5px",
-                        marginBottom: sortBar === null ? "15px" : null
+                        marginBottom: sortBar === null ? null : null
                     }
                 });
 
@@ -752,6 +753,75 @@ function renderGitHubPage(rule, page) {
                     searchResults.parentNode.insertBefore(searchMsg, searchResults);
                 else if ( blankSlate !== null )
                     blankSlate.parentNode.insertBefore(searchMsg, blankSlate);
+
+                //if ( searchResults !== null ) {
+                //    if ( sortBar !== null ) {
+                //        sortBar.style.borderBottom  = "0px";
+                //        sortBar.style.marginBottom  = "0px";
+                //        sortBar.style.paddingBottom = "0px";
+                //    }
+
+                //    renderTabs("commits");
+                //}
+
+                function renderTabs(select) 
+                {
+                    if ( tabsBody != null )
+                        tabsBody.parentNode.removeChild(tabsBody);
+
+                    var page = getSearchPage(),
+                        shas = getPageShas();
+
+                    tabsBody = htmlUtil.createDiv({style: { marginBottom: "25px" }});
+
+                    searchResults.parentNode.insertBefore(tabsBody, searchResults);
+
+                    var tabs = [ 
+                        { id: "commits", label: "Commits"},
+                        { id: "changes", label: "Changes" }
+                    ];
+
+                    var tabBuilder = new sdes.github.ui.tabs();
+
+                    for ( var i = 0; i < tabs.length; i++ ) {
+                        var tab = tabs[i];
+
+                        tabBuilder.add({
+                            id: tab.id,
+                            html: tab.label,
+                            selected: tab.id === select ? true : false,
+                            onclick: clicked
+                        });
+                    }
+
+                    $(tabsBody).html("");
+    
+                    tabsBody.appendChild(tabBuilder.build());
+
+                    function clicked(id, tab) {
+                        selectedTab = id;
+                        
+                        switch(id) {
+                            case "commits":
+                                $(matchingCommitsBody).show();
+                                break;
+                            default:
+                                throw("GitSense: Unrecognized tab type '"+id+"'");
+                        }
+
+                        renderTabs();
+                    }
+
+                    function getPageShas() {
+                        var elems = document.getElementsByClassName("sha"),
+                            shas  = [];
+
+                        for ( var i = 0; i < elems.length; i++ )
+                            shas.push(elems[i].href.split("/").pop());
+
+                        return shas;
+                    }
+                }
             }
 
             function addCodeSearchMsg() {
@@ -832,7 +902,7 @@ function renderGitHubPage(rule, page) {
             if ( new Date().getTime() > stopAt )
                 return;
 
-            if ( commitsMenu === null ) {
+            if ( diffsMenu === null ) {
                 setTimeout(retry,100);
                 return;
             }
@@ -876,6 +946,11 @@ function renderGitHubPage(rule, page) {
                     else
                         $(searchMsg).text("GitSense commits search is currently not available.");
 
+                    if ( branch.indexedSource ) 
+                        search("code", branchId, branch.head, searchArgs);
+                    else
+                        $(searchMsg).text("GitSense code search is currently not available.");
+
                     if ( branch.indexedDiffs) {
                         search("diffs", branchId, branch.head, searchArgs);
                     } else {
@@ -883,10 +958,6 @@ function renderGitHubPage(rule, page) {
                         diffsMenu.sync = null;
                     }
 
-                    if ( branch.indexedSource ) 
-                        search("code", branchId, branch.head, searchArgs);
-                    else
-                        $(searchMsg).text("GitSense code search is currently not available.");
                 }
             );
 
@@ -1038,6 +1109,22 @@ function renderGitHubPage(rule, page) {
         }
 
         return args; 
+    }
+
+    function getSearchPage() {
+        var queries = window.location.search.split("&"),
+            page    = 1;
+
+        for ( var i = 0; i < queries.length; i++ ) {
+            var query = queries[i].replace(/^\?/,"");
+
+            if ( ! query.match(/^p=/) )
+                continue;
+
+            page = parseInt(query.split("=").pop());
+        }
+
+        return page;
     }
 } 
 
