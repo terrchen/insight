@@ -9,6 +9,11 @@ sdes.github.utils.page = function(rule) {
         if ( names[names.length - 1] === "" )
             names.pop();
 
+        if ( names.length === 1 && names[0] === "login" ) {
+            callback(null);
+            return;
+        }
+
         if ( names.length !== 1 && names[0] !== "orgs" ) {
             if ( names.length > 1 )
                 parseRepo(names, callback);

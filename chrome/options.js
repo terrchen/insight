@@ -54,7 +54,7 @@ function load() {
                             "<input id="+id+"-matches type=text "+
                                 "placeholder='URL match pattern' "+
                                 "value='"+rule.matches+"' "+
-                                "style='width:730px;'>"+
+                                "style='width:480px;'>"+
                             "<span class='options'>"+
                                 "<span id="+id+"-option-down "+
                                     "class='octicon octicon-arrow-down option' "+
@@ -106,7 +106,7 @@ function load() {
                 }
 
                 function getXFrameOptions() {
-                    var html = "<select id="+id+"-host-xFrameOptions>";
+                    var html = "<select id="+id+"-host-xFrameOptions style='width:112px'>";
 
                     for ( var i = 0; i < xFrameOptions.length; i++ ) {
                         var option   = xFrameOptions[i],
@@ -134,7 +134,7 @@ function load() {
                                     "<td class=field-cell>Type</td>"+
                                     "<td class=field-cell>API</td>"+
                                     "<td class=field-cell>X-Frame-Options</td>"+
-                                    "<td class=field-cell>Access token</td>"+
+                                    "<td class=field-cell style='display:none;'>Access token</td>"+
                                 "</tr>"+
                                 "<tr>"+
                                     "<td class=field-cell>"+getHostTypes()+"</td>"+
@@ -150,7 +150,7 @@ function load() {
                                             "id="+id+"-host-secret "+
                                             "value='"+rule.host.secret+"' "+
                                             "placeholder=Optional "+
-                                            "style='width:210px;'>"+
+                                            "style='width:213px;display:none;'>"+
                                     "</td>"+
                                 "</tr>"+
                             "</table>"+
@@ -169,21 +169,21 @@ function load() {
                             "<table>"+
                                 "<tr>"+
                                     "<td class=field-cell>Base URL</td>"+
-                                    "<td class=field-cell>Access token</td>"+
+                                    "<td class=field-cell style='display:none;'>Access token</td>"+
                                 "</tr>"+
                                 "<tr>"+
                                     "<td class=field-cell>"+
                                         "<input type=text "+
                                             "id="+id+"-gitsense-baseUrl "+
                                             "value='"+rule.gitsense.baseUrl+"' "+
-                                            "style='width:415px'>"+
+                                            "style='width:550px'>"+
                                     "</td>"+
                                     "<td class=field-cell style='padding-right:0px;'>"+
                                         "<input type=password "+
                                             "id="+id+"-gitsense-secret "+
                                             "value='"+rule.gitsense.secret+"' "+
                                             "placeholder=Optional "+
-                                            "style='width:350px;'>"+
+                                            "style='width:350px;display:none;'>"+
                                     "</td>"+
                                 "</tr>"+
                             "</table>"+

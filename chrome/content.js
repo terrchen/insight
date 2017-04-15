@@ -18,6 +18,7 @@ var lastLocation        = null,
     origPeekWidth       = peekWidth,
     gitsenseIframe      = null,
     gitsenseFrameId     = "gitsense-content-iframe",
+    currentRule         = null,
     lastPageChangedTime = null;
 
 window.addEventListener("message", receiveMessage, false);
@@ -40,6 +41,8 @@ initGitSenseConfig(function() {
 });
 
 function pageChanged(rule, force) {
+    currentRule = rule;
+
     lastPageChangedTime = new Date().getTime();
 
     if ( force === undefined ) 
@@ -132,270 +135,59 @@ function renderGitHubPage(rule, page) {
     if ( page === null )
         return;
 
-    if ( page.type === "org" )
-        renderOrgPage();
-    else  
-        renderCommonPage();
+    if ( page.type === "org" || page.search )
+        return;   // Not supporting for now
+    else if ( page.type === "repo" )
+        renderRepoPage();
+    else
+        throw("Error: Unrecognized GitHub page type '"+page.type+"'");
 
-    function renderOrgPage() {
-        var htmlUtil   = new sdes.utils.html(),
-            containers = document.getElementsByClassName("container"),
-            header     = document.getElementsByClassName("orghead")[0],
-            pageHead   = document.getElementsByClassName("pagehead")[0],
-            insightTab = null;
-
-        if ( page.tabs !== undefined )
-            insightTab = addInsightTab();
-
-        if ( ! page.show ) {
-            containers[0].style.width        = "980px";
-            containers[0].style.paddingLeft  = null;
-            containers[0].style.paddingRight = null;
-
-            containers[1].style.width        = "980px";
-            containers[1].style.paddingLeft  = null;
-            containers[1].style.paddingRight = null;
-
-            header.style.marginBottom = null;
-
-            $(page.container).show();
-
-            new sdes.gitsense.data.auth(rule).getTempToken(
-                page.org,
-                "_ORG_",
-                function(token, numIndexedBranches, numIndexedRepos, error) {
-                    if ( error !== undefined ) 
-                        throw error.responseText;
-
-                    $(insightTab.counter).html(
-                        Number(numIndexedBranches).toLocaleString("en")
-                    );
-                }
-            );
-
-            return;
-        }
-
-        header.style.marginBottom = "5px";
-
-        containers[0].style.width        = "100%";
-        containers[0].style.paddingLeft  = "20px";
-        containers[0].style.paddingRight = "20px";
-
-        containers[1].style.width        = "100%";
-        containers[1].style.paddingLeft  = "20px";
-        containers[1].style.paddingRight = "20px";
-
-        $(page.container).hide();
-
-        var stopAnimation = false,
-            renderTo = createGitSenseBody();
-
-        new sdes.gitsense.data.auth(rule).getTempToken(
-            page.org,
-            "_ORG_",
-            function(token, numIndexedBranches, numIndexedRepos, error) {
-                stopAnimation = true;
- 
-                if ( error !== undefined ) 
-                    throw error.responseText;
-
-                var params = {
-                    id: "main",
-                    iframeSrc: 
-                        rule.gitsense.baseUrl+"/"+
-                        "insight/"+
-                        rule.host.type+"/"+
-                        "index.html?auth=token:"+token+"&org="+page.org,
-                    targetOrigin: rule.gitsense.baseUrl,
-                    hash: window.location.hash,
-                    height: "500px",
-                };
-
-                $(renderTo).html("");
-
-                $(insightTab.counter).html(
-                    Number(numIndexedBranches).toLocaleString("en")
-                );
-
-                renderGitSense(renderTo, rule, token, params);
-            }
-        );
-
-        function addInsightTab() {
-            var needToAdd = true,
-                graphsTab = null;
-
-            for ( var i = 0; i < page.tabs.children.length; i++ ) {
-                var tab = page.tabs.children[i];
-
-                if ( tab.className === "" ) 
-                    tab = tab.children[0];
-
-                else if ( $(tab).html().match(/Insight/) )
-                    tab.parentNode.removeChild(tab);
-
-                if ( ! page.show )
-                    continue;
-
-                if ( tab.className.match(/ selected/) )
-                    tab.setAttribute("class", tab.className.replace(/ selected/, ""));
-            }
-
-            var label =
-                    htmlUtil.createSpan({
-                        html: "<span class='octicon octicon-light-bulb'></span> "+
-                              "Insight ",
-                    }),
-                counter = 
-                    htmlUtil.createSpan({
-                        cls: "counter",
-                        html: "&nbsp; &nbsp"
-                    }),
-                insightTab = 
-                    htmlUtil.createLink({
-                        id: "gitsense-tab",
-                        cls: "pagehead-tabs-item"+(page.show ? " selected" : ""),
-                        href: "/"+page.org+"?gitsense=insight",
-                        append: [ label, counter ],
-                        style: {
-                            cursor: "pointer"
-                        }
-                    });
-
-            insightTab.counter = counter;
-
-            page.tabs.appendChild(insightTab);
-
-            return insightTab;
-        }
-
-        function createGitSenseBody() {
-            var renderTo = htmlUtil.createDiv(),
-
-                dots = 
-                    htmlUtil.createSpan({
-                        style: {
-                            marginLeft: "5px"
-                        }
-                    }),
-
-                h3 = 
-                    htmlUtil.createHeader3({
-                        append: [ 
-                            htmlUtil.createTextNode("Loading GitSense Insight "),
-                            dots
-                        ]
-                    }),
-
-                loadBody = 
-                    htmlUtil.createDiv({
-                        append: [ h3 ],
-                        style: {
-                            color: "#333",
-                            padding: "30px",
-                            paddingTop: "50px"
-                        }
-                    });
-
-            page.container.parentNode.appendChild(renderTo);
-
-            renderTo.appendChild(loadBody);
-
-            var stopAt = new Date().getTime() + 2000;
-
-            animate(1);
-
-            return renderTo;
-
-            function animate(numDots) {
-                if ( stopAnimation )
-                    return;
-
-                if ( numDots > 20 )
-                    numDots = 1;
-
-                var text = ".";
-
-                for ( var i = 1; i <= numDots; i++ )
-                    text += " .";
-
-                $(dots).text(text);
-
-                setTimeout(function(){ animate(numDots + 1); }, 250);
-            }
-
-            function checkForOctotree() {
-                if ( new Date().getTime() > stopAt )  
-                    return;
-
-                var elems = document.getElementsByClassName("octotree_toggle");
-
-                if ( elems === null || elems.length === 0 ) {
-                    setTimeout(checkForOctotree, 100);
-                    return;
-                }
-
-                header.style.paddingLeft  = "45px";
-            }
-        }
-    }
-
-    function renderCommonPage() {
+    function renderRepoPage() {
         var htmlUtil        = new sdes.utils.html(),
             containers      = document.getElementsByClassName("container"),
             pageHead        = document.getElementsByClassName("pagehead")[0],
             header          = containers[0],
             stopAnimation   = false,
-            searchArgs      = page.search ? getSearchArgs() : null,
-            searchMsg       = null,
-            codeMenu        = null,
-            commitsMenu     = null,
-            diffsMenu       = null,
             renderTo        = null,
             githubRepo      = null,
             githubRepoError = null,
-            insightTab      = null,
-            token           = null;
+            insightTab      = null;
 
         if ( page.tabs !== undefined )
             insightTab = addInsightTab();
-
-        if ( page.search )
-            addSearchItems();
 
         if ( page.show ) 
             renderTo = createGitSenseBody();
         else
             fixHeader();
 
-        new sdes.gitsense.data.auth(rule).getTempToken(
+        new sdes.gitsense.data.insight(rule).stat(
+            rule.host.type,
             page.owner,
             page.repo,
-            function(_token, numIndexedBranches, numIndexedRepos, error) {
+            function(numIndexedBranches, numIndexedRepos, error) {
                 stopAnimation = true;
 
                 if ( error !== undefined )
                     throw error.responseText;
 
-                token = _token;
-
                 $(insightTab.counter).html(
                     Number(numIndexedBranches).toLocaleString("en")
                 );
 
-                if ( page.search || ! page.show ) {
-                    updateSearch(new Date().getTime() + 2000);
+                if ( ! page.show )
                     return;
-                }
+
+                var hostId = rule.host.type;
 
                 var params = {
                     id: "main",
                     iframeSrc: 
                         rule.gitsense.baseUrl+"/"+
                         "insight/"+
-                        rule.host.type+"/"+
-                        "index.html?auth=token:"+token,
+                        hostId+"?"+
+                        "e=true&"+
+                        "r="+page.owner+"/"+page.repo,
                     targetOrigin: rule.gitsense.baseUrl,
                     hash: window.location.hash,
                     height: "500px",
@@ -403,7 +195,7 @@ function renderGitHubPage(rule, page) {
                 };
 
                 $(renderTo).html("");
-                renderGitSense(renderTo, rule, token, params);
+                renderGitSense(renderTo, rule, params);
             }
         );
 
@@ -567,6 +359,9 @@ function renderGitHubPage(rule, page) {
                     cls: "js-selected-navigation-item reponav-item"+
                          (page.show ? " selected" : ""),
                     href: "/"+page.owner+"/"+page.repo+"?gitsense=insight",
+                    //href: 
+                    //    rule.gitsense.baseUrl+"/insight/"+
+                    //    rule.host.type+"?r="+page.owner+"/"+page.repo,
                     append: [ label, counter ],
                     style: {
                         cursor: "pointer"
@@ -586,770 +381,57 @@ function renderGitHubPage(rule, page) {
 
             return insightTab;
         }
-
-        function addSearchItems() {
-            diffsMenu = document.getElementById("gitsense-search-menu-diffs");
-
-            if ( diffsMenu !== null )
-                return;
-
-            var menus        = document.getElementsByClassName("menu")[0],
-                alreadyAdded = false; 
-
-            for ( var i = 0; i < menus.children.length; i++ ) {
-                var menu = menus.children[i];
-
-                if ( menu.innerText.match(/^\s*Diffs/) )
-                    return;
-
-                if ( ! menu.innerText.match(/^\s*(Code|Commits)/) )
-                    continue;
-
-                if ( menu.innerText.match(/Code/) )
-                    codeMenu = menu;
-                else if ( menu.innerText.match(/Commits/) ) 
-                    commitsMenu = menu;
-
-                menu.selected = menu.className.match(/selected/) ? true : false;
-            }
-
-            var temp = [ codeMenu, commitsMenu ];
-
-            for ( var i = 0; i < temp.length; i++ ) {
-                var menu = temp[i];
-
-                switch(menu.childNodes.length) {
-                    case 3:
-                        menu.counter    = menu.childNodes[2];
-                        menu.numMatches = menu.innerText.replace(/^([^\d]+)(.+)$/, "$2");
-
-                        if ( ! menu.counter.className.match(/counter/) )  {
-                            setTimeout(addSearchItems, 100);
-                            return;
-                        }
-
-                        if ( isNaN(parseInt(menu.numMatches.replace(",",""))) )
-                            menu.numMatches = 0; 
-
-                        break;
-                    case 2:
-                        menu.counter = htmlUtil.createSpan({
-                            cls: "counter"
-                        });
-
-                        menu.appendChild(menu.counter);
-
-                        menu.numMatches = 0;
-                        break;
-                    default:
-                        console.warn("Not sure how to process code menu");
-                }
-            }
-
-            for ( var i = 0; i < temp.length; i++ ) {
-                var menu = temp[i];
-
-                menu.sync = htmlUtil.createSpan({
-                    cls: "octicon octicon-sync",
-                    style: {
-                        marginRight: "0px",
-                    }
-                });
-
-                $(menu.counter).html("");
-
-                menu.counter.appendChild(htmlUtil.createTextNode( menu.numMatches+" / " ));
-                menu.counter.appendChild(menu.sync);
-            }
-
-            diffsMenu = addMenu("Diffs", "diff");
-
-            menus.insertBefore(diffsMenu, commitsMenu.nextSibling);
-
-            var deg   = 0,
-                menus = [ codeMenu, commitsMenu, diffsMenu ];
-
-            animateSync();
-
-            var stopAt = new Date().getTime() + 2000;
-
-            if ( codeMenu.selected )
-                addCodeSearchMsg();
-            else if ( commitsMenu.selected )
-                addCommitsSearchMsg();
-
-            function addMenu(label, icon) {
-                var sync = 
-                    htmlUtil.createSpan({
-                        cls: "octicon octicon-sync",
-                        style: {
-                            marginRight: "0px",
-                        }
-                    }),
-                    icon = 
-                        htmlUtil.createSpan({
-                            cls: "octicon octicon-"+icon
-                        }),
-                    counter = 
-                        htmlUtil.createSpan({
-                            append: [ sync ],
-                            cls: "counter"
-                        }),
-
-                    menu = 
-                        htmlUtil.createLink({
-                            id: "gitsense-search-menu-"+label,
-                            cls: "menu-item",
-                            append: [
-                                icon, 
-                                htmlUtil.createTextNode(" "+label),
-                                counter
-                            ],
-                            style: {
-                                cursor: "pointer"
-                            }
-                        });
-
-                menu.counter = counter;
-                menu.sync    = sync;
-    
-                return menu;
-            }
-
-            function addCommitsSearchMsg() {
-                if ( new Date().getTime() > stopAt )
-                    return;
-
-                var searchResults = document.getElementById("commit_search_results"),
-                    blankElems    = document.getElementsByClassName("blankslate"),
-                    sortElems     = document.getElementsByClassName("sort-bar"),
-                    sortBar       = null,
-                    blankSlate    = null,
-                    tabsBody      = null;
-
-                if ( sortElems !== null && sortElems.length !== 0  )
-                    sortBar = sortElems[0];
-
-                if ( blankElems !== null && blankElems.length !== 0 )
-                    blankSlate = blankElems[0];
-
-                if ( searchResults === null && sortBar === null && blankSlate === null ) {
-                    setTimeout(addCommitsSearchMsg, 50);
-                    return;
-                }
-
-                searchMsg = htmlUtil.createDiv({
-                    id: "gitsense-search-msg",
-                    html: "Loading GitSense Insight ...",
-                    style: {
-                        marginTop: sortBar === null ? null : "5px",
-                        marginBottom: sortBar === null ? null : null
-                    }
-                });
-
-                if ( sortBar !== null )
-                    sortBar.appendChild(searchMsg);
-                else if ( searchResults !== null )
-                    searchResults.parentNode.insertBefore(searchMsg, searchResults);
-                else if ( blankSlate !== null )
-                    blankSlate.parentNode.insertBefore(searchMsg, blankSlate);
-
-                //if ( searchResults !== null ) {
-                //    if ( sortBar !== null ) {
-                //        sortBar.style.borderBottom  = "0px";
-                //        sortBar.style.marginBottom  = "0px";
-                //        sortBar.style.paddingBottom = "0px";
-                //    }
-
-                //    renderTabs("commits");
-                //}
-
-                function renderTabs(select) 
-                {
-                    if ( tabsBody != null )
-                        tabsBody.parentNode.removeChild(tabsBody);
-
-                    var page = getSearchPage(),
-                        shas = getPageShas();
-
-                    tabsBody = htmlUtil.createDiv({style: { marginBottom: "25px" }});
-
-                    searchResults.parentNode.insertBefore(tabsBody, searchResults);
-
-                    var tabs = [ 
-                        { id: "commits", label: "Commits"},
-                        { id: "changes", label: "Changes" }
-                    ];
-
-                    var tabBuilder = new sdes.github.ui.tabs();
-
-                    for ( var i = 0; i < tabs.length; i++ ) {
-                        var tab = tabs[i];
-
-                        tabBuilder.add({
-                            id: tab.id,
-                            html: tab.label,
-                            selected: tab.id === select ? true : false,
-                            onclick: clicked
-                        });
-                    }
-
-                    $(tabsBody).html("");
-    
-                    tabsBody.appendChild(tabBuilder.build());
-
-                    function clicked(id, tab) {
-                        selectedTab = id;
-                        
-                        switch(id) {
-                            case "commits":
-                                $(matchingCommitsBody).show();
-                                break;
-                            default:
-                                throw("GitSense: Unrecognized tab type '"+id+"'");
-                        }
-
-                        renderTabs();
-                    }
-
-                    function getPageShas() {
-                        var elems = document.getElementsByClassName("sha"),
-                            shas  = [];
-
-                        for ( var i = 0; i < elems.length; i++ )
-                            shas.push(elems[i].href.split("/").pop());
-
-                        return shas;
-                    }
-                }
-            }
-
-            function addCodeSearchMsg() {
-                if ( new Date().getTime() > stopAt )
-                    return;
-
-                var searchResults = document.getElementById("code_search_results"),
-                    searchHead    = document.getElementsByClassName("codesearch-head")[0],
-                    blankElems    = document.getElementsByClassName("blankslate"),
-                    sortElems     = document.getElementsByClassName("sort-bar"),
-                    sortBar       = null,
-                    blankSlate    = null;
-
-                if ( sortElems !== null && sortElems.length !== 0  )
-                    sortBar = sortElems[0];
-
-                if ( blankElems !== null && blankElems.length !== 0 )
-                    blankSlate = blankElems[0];
-
-                if ( searchResults === null && sortBar === null && blankSlate === null ) {
-                    setTimeout(addCodeSearchMsg, 50);
-                    return;
-                }
-
-                searchMsg = htmlUtil.createDiv({
-                    id: "gitsense-search-msg",
-                    html: "Loading GitSense Insight ...",
-                    style: {
-                        marginTop: sortBar === null ? null : "10px",
-                        marginBottom: sortBar === null ? "20px" : null
-                    }
-                });
-
-                if ( sortBar !== null )
-                    sortBar.appendChild(searchMsg);
-                else if ( searchResults !== null )
-                    searchResults.parentNode.insertBefore(searchMsg, searchResults);
-                else if ( blankSlate !== null )
-                    blankSlate.parentNode.insertBefore(searchMsg, blankSlate);
-            }
-
-            function animateSync() {
-                var count = 0;
-
-                for ( var i = 0; i < menus.length; i++ ) {
-                    var menu = menus[i];
-
-                    if ( menu.sync === null )
-                        count++;
-                }
-
-                if ( count === menus.length )
-                    return;
-
-                deg += 10;
-
-                if ( deg > 360 )
-                    deg = 0;
-
-                for ( var i = 0; i < menus.length; i++ ) {
-                    var menu = menus[i];
-
-                    if ( menu.sync == null )
-                        continue;
-
-                    try {
-                        menu.sync.style.transform = "rotate("+deg+"deg)";
-                    } catch (e) {
-                        // Ignore exceptions since the sync element can be removed at anytime.
-                    }
-                }
-
-                setTimeout(animateSync, 50);
-            }
-        }
-
-        function updateSearch(stopAt) {
-            if ( new Date().getTime() > stopAt )
-                return;
-
-            if ( diffsMenu === null ) {
-                setTimeout(retry,100);
-                return;
-            }
-            
-            if ( githubRepoError !== null ) {
-                renderNoSearch();
-                return;
-            }
-
-            if ( githubRepo === null ) {
-                setTimeout(retry,100);
-                return;
-            };
-
-            var idata    = new sdes.gitsense.data.insight(rule, token),
-                branchId = "github:"+page.owner+"/"+page.repo+":"+githubRepo.default_branch,
-                href     = "/"+page.owner+"/"+page.repo+"?gitsense=insight#"+
-                           "b="+branchId+"&t=%TYPE%&q="+searchArgs.join("+"),
-                sabhref  = "/"+page.owner+"/"+page.repo+"?gitsense=insight#"+
-                           "&_t=%TYPE%&_q="+searchArgs.join("+");
-
-            idata.getBranchHeads(
-                [branchId],
-                function(branchToLatest, error) {
-                    if ( error !== undefined ) {
-                        if ( error.responseText.match(/^{/) )  // FIXME
-                            branchToLatest = JSON.parse(error.responseText);
-                        else
-                            throw(error.responseText);
-                    }
-
-                    var branch = branchToLatest[branchId];
-
-                    if ( typeof(branch) === "string" ) {
-                        renderNoSearch();
-                        return;
-                    }
-
-                    if ( branch.indexedCommits )
-                        search("commits", branchId, branch.head, searchArgs);
-                    else
-                        $(searchMsg).text("GitSense commits search is currently not available.");
-
-                    if ( branch.indexedSource ) 
-                        search("code", branchId, branch.head, searchArgs);
-                    else
-                        $(searchMsg).text("GitSense code search is currently not available.");
-
-                    if ( branch.indexedDiffs) {
-                        search("diffs", branchId, branch.head, searchArgs);
-                    } else {
-                        $(diffsMenu.counter).text("N/A");
-                        diffsMenu.sync = null;
-                    }
-
-                }
-            );
-
-            function retry() {
-                updateSearch(stopAt);
-            }
-
-            function renderNoSearch() {
-                $(commitsMenu.counter).text(commitsMenu.numMatches);
-                $(codeMenu.counter).text(codeMenu.numMatches);
-                $(diffsMenu.counter).text("N/A");
-                $(searchMsg).html(
-                    "Unable to search default branch.&nbsp; "+
-                    "<a href="+window.location.origin+"/"+page.owner+"/"+page.repo+"?gitsense=insight>"+
-                    "GitSense Insight"+
-                    "</a> not available."
-                );
-            }
-
-            function search(type, branchId, head, args) {
-                if ( type === "code" && codeMenu.selected )
-                    $(searchMsg).text("Searching default branch with GitSense ...");
-                else if ( type === "commits" && commitsMenu.selected )
-                    $(searchMsg).text("Searching default branch with GitSense ...");
-
-                var _args = $.extend(true, [], args);
-
-                if ( type === "code" )
-                    _args.push("cs:true");
-
-                idata.search(
-                    type,
-                    [branchId+"@@@"+head.name],
-                    _args,
-                    1,
-                    0,
-                    function(results, error) {
-                        if ( error !== undefined && ! error.responseText.match(/No search arguments/) ) 
-                            throw error.responseText;
-
-                        var summary = 
-                                error === undefined ? 
-                                    results.search[branchId] :
-                                    { total: 0 };
-
-                        if ( type === "commits" )
-                            updateCommitsSearch(summary);
-                        else if ( type === "code" )
-                            updateCodeSearch(summary);
-                        else if ( type === "diffs" )
-                            updateDiffsSearch(summary);
-                    }
-                );
-
-                function updateCommitsSearch(summary) {
-                    var total = summary.total;
-
-                    $(commitsMenu.counter).html(
-                        commitsMenu.numMatches+" / "+
-                        Number(total).toLocaleString("en")
-                    );
-
-                    if ( ! commitsMenu.selected )
-                        return;
-
-                    $(searchMsg).html(
-                        "<a href="+href.replace(/%TYPE%/, "commits")+">"+
-                            "GitSense found "+
-                            Number(total).toLocaleString("en")+" "+
-                            "commit"+(total === 1 ? "" : "s")+" on the default branch."+
-                        "</a>"+
-                        "<span class='octicon octicon-search' "+
-                            "style='margin-left:10px;margin-right:2px;"+
-                            "position:relative;top:-2px;"+
-                            "font-size:14px;'></span> "+
-                        "<a href=\""+sabhref.replace("%TYPE%", "commits")+"\">Search another branch.</a>"
-                    );
-                }
-
-                function updateCodeSearch(summary) {
-                    var total = summary.total;
-
-                    $(codeMenu.counter).html(
-                        codeMenu.numMatches+" / "+
-                        Number(total).toLocaleString("en")
-                    );
-
-                    if ( ! codeMenu.selected )
-                        return;
-
-                    $(searchMsg).html(
-                        "<a href="+href.replace("%TYPE%","code")+"+cs:true>"+
-                            "GitSense found "+
-                            Number(total).toLocaleString("en")+" "+
-                            "code result"+(total === 1 ? "" : "s")+" "+
-                            "with case-sensitive on & camelCase off."+
-                        "</a>"+
-                        "<span class='octicon octicon-search' "+
-                            "style='margin-left:10px;margin-right:2px;"+
-                            "position:relative;top:-2px;"+
-                            "font-size:14px;'></span> "+
-                        "<a href=\""+sabhref.replace("%TYPE%", "code")+"\">Search another branch.</a>"
-                    );
-                }
-
-                function updateDiffsSearch(summary) {
-                    diffsMenu.sync = null;
-
-                    diffsMenu.setAttribute(
-                        "href",
-                        href.replace(/%TYPE%/,"diffs")
-                    );
-
-                    $(diffsMenu.counter).text(Number(summary.total).toLocaleString("en"));
-                }
-            }
-        }
-    }
-
-    function getSearchArgs() {
-        var queries = window.location.search.split("&"),
-            args    = [];
-
-        for ( var i = 0; i < queries.length; i++ ) {
-            var query = queries[i].replace(/^\?/,"");
-
-            if ( ! query.match(/^(q|l)=/) )
-                continue;
-    
-            var type  = query.match(/^q/) ? "q" : "l",
-                value = query.replace(/^(q|l)=/, ""),
-                temp  = type === "q" ? value.split(",") : value.split("+");
-    
-            if ( type === "l" ) {
-                args.push("lang:"+temp[0]);
-                continue;
-            }
-
-            for ( var j = 0; j < temp.length; j++ ) {
-                var arg = decodeURIComponent(temp[j]);
-
-                if ( arg.match(/^language:/) )
-                    args.push("lang:"+arg.replace(/^language:/, "").split(",")[0]);
-                else if ( arg.match(/^path:/) )
-                    args.push("path:"+arg.replace(/^path:/, "")+"*")
-                else
-                    args.push(arg);
-            }
-        }
-
-        return args; 
-    }
-
-    function getSearchPage() {
-        var queries = window.location.search.split("&"),
-            page    = 1;
-
-        for ( var i = 0; i < queries.length; i++ ) {
-            var query = queries[i].replace(/^\?/,"");
-
-            if ( ! query.match(/^p=/) )
-                continue;
-
-            page = parseInt(query.split("=").pop());
-        }
-
-        return page;
     }
 } 
 
-function renderGitLabPage(rule, page){
+function renderGitLabPage(rule, page) {
     // If page is null, it means we don't know how to proceed so stop here
     if ( page === null )
         return;
 
-    if ( page.type === "group" )
-        renderGroupPage();
-    else if ( page.type === "repo" )
+    if ( page.type === "repo" )
         renderRepoPage();
     else if ( page.type === "search" )
-        renderSearchPage();
-    else if ( page.type === "user" ) 
-        renderUserPage();
+        return;  // Not supporting for now
     else
         throw("Unrecognized GitLab page '"+page.type+"'");
-
-    function renderGroupPage() {
-        var htmlUtil       = new sdes.utils.html(),
-            insightNavLink = null;
-
-        if ( page.navLinks !== undefined )
-            insightNavLink = addInsightNavLink();
-
-        if ( ! page.show ) {
-            $(page.content).show();
-
-            new sdes.gitsense.data.auth(rule).getTempToken(
-                page.group,
-                "_GROUP_",
-                function(token, numIndexedBranches, numIndexedRepos, error) {
-                    if ( error !== undefined )
-                        throw error.responseText;
-
-                    $(insightNavLink.badge).html(
-                        Number(numIndexedBranches).toLocaleString("en")
-                    );
-                }
-            );
-
-            return;
-        }
-
-        $(page.content).hide();
-
-        var stopAnimation = false,
-            renderTo = createGitSenseBody();
-
-        new sdes.gitsense.data.auth(rule).getTempToken(
-            page.group,
-            "_GROUP_",
-            function(token, numIndexedBranches, numIndexedRepos, error) {
-                stopAnimation = true;
- 
-                if ( error !== undefined )
-                    throw error.responseText;
-
-                $(insightNavLink.badge).html(
-                    Number(numIndexedBranches).toLocaleString("en")
-                );
-
-                var params = {
-                    id: "main",
-                    iframeSrc: 
-                        rule.gitsense.baseUrl+"/"+
-                        "insight/"+
-                        rule.host.type+"/"+
-                        "index.html?auth=token:"+token+"&group="+page.group,
-                    targetOrigin: rule.gitsense.baseUrl,
-                    hash: window.location.hash,
-                    height: "500px",
-                };
-
-                $(renderTo).html("");
-                renderGitSense(renderTo, rule, token, params);
-            }
-        );
-
-        function addInsightNavLink() {
-            var needToAdd  = true,
-                graphsLink = null,
-                issuesLink = null,
-                contributionLink = null;
-
-            for ( var i = 0; i < page.navLinks[0].children.length; i++ ) {
-                var link = page.navLinks[0].children[i];
-
-                if ( $(link).text().match(/Issues/) )    
-                    issuesLink = link;
-                else if ( $(link).text().match(/Issues/) )    
-                    issuesLink = link;
-                else if ( $(link).html().match(/Contribution/) )
-                    link.parentNode.removeChild(link);
-
-                if ( ! page.show )
-                    continue;
-
-                if ( link.className.match(/ active/) )
-                    link.setAttribute("class", link.className.replace(/ active/, ""));
-            }
-
-            var label =
-                    htmlUtil.createSpan({
-                        text: "Insight ",
-                    }),
-                badge = 
-                    htmlUtil.createSpan({
-                        cls: "badge",
-                        html: "&nbsp; &nbsp"
-                    }),
-                insightNavLink = htmlUtil.createLink({
-                    title: "GitSense Insight",
-                    cls: "shortcuts-insight",
-                    append: [ label, badge ],
-                    href: 
-                        (window.location.pathname.match(/^\/groups\//) ? "/groups" : "" )+
-                        "/"+page.group+"?gitsense=insight"
-                });
-
-            insightNavLink.badge = badge;
-
-            var list = htmlUtil.createList({
-                cls: (page.show ? " active" : ""),
-                append: [ insightNavLink ],
-            });
-
-            if ( contributionLink !== null )
-                page.navLinks[0].appendChild(list);
-            else if ( graphsLink !== null )
-                page.navLinks[0].insertBefore(list, graphsLink.nextSibling);
-            else if ( issuesLink !== null )
-                page.navLinks[0].insertBefore(list, issuesLink);
-            else
-                page.navLinks[0].appendChild(list);
-
-            return insightNavLink;
-        }
-
-        function createGitSenseBody() {
-            var renderTo = htmlUtil.createDiv(),
-
-                dots = 
-                    htmlUtil.createSpan({
-                        style: {
-                            marginLeft: "5px"
-                        }
-                    }),
-
-                h3 = 
-                    htmlUtil.createHeader3({
-                        append: [ 
-                            htmlUtil.createTextNode("Loading GitSense Insight "),
-                            dots
-                        ]
-                    }),
-
-                loadBody = 
-                    htmlUtil.createDiv({
-                        append: [ h3 ],
-                        style: {
-                            color: "#333",
-                            padding: "30px",
-                            paddingTop: "50px"
-                        }
-                    });
-
-            page.content.parentNode.appendChild(renderTo);
-
-            renderTo.appendChild(loadBody);
-
-            var stopAt = new Date().getTime() + 2000;
-
-            animate(1);
-
-            return renderTo;
-
-            function animate(numDots) {
-                if ( stopAnimation )
-                    return;
-
-                if ( numDots > 20 )
-                    numDots = 1;
-
-                var text = ".";
-
-                for ( var i = 1; i <= numDots; i++ )
-                    text += " .";
-
-                $(dots).text(text);
-
-                setTimeout(function(){ animate(numDots + 1); }, 250);
-            }
-        }
-    }
 
     function renderRepoPage() {
         var htmlUtil        = new sdes.utils.html(),
             stopAnimation   = false,
-            //searchArgs      = page.search ? getSearchArgs() : null,
-            //searchMsg       = null,
             renderTo        = null,
             gitlabRepo      = null,
             gitlabRepoError = null,
-            insightNavLink  = null,
-            token           = null;
+            insightNavLink  = null;
 
         if ( page.navLinks !== undefined )
             insightNavLink = addInsightNavLink();
 
-        if ( page.show )
+        if ( page.show ) {
             $(page.content).hide();
-        else
+
+            // Hide the subnavs, if they exists. Note we are starting at 1
+            for ( var i = 1; i < page.navLinks.length; i++ )
+                $(page.navLinks[i]).hide();
+
+        } else {
             $(page.content).show();
+
+            // Show the subnavs, if they exists. Note we are starting at 1
+            for ( var i = 1; i < page.navLinks.length; i++ )
+                $(page.navLinks[i]).show();
+        }
         
         if ( page.show ) 
             renderTo = createGitSenseBody();
         else if ( page.mergeRequest !== null && page.mergeRequest.page === "commits" )
             updateMergeCommitsLinks();
 
-        new sdes.gitsense.data.auth(rule).getTempToken(
+        new sdes.gitsense.data.insight(rule).stat(
+            rule.host.type,
             page.owner,
             page.repo,
-            function(_token, numIndexedBranches, numIndexedRepos, error) {
+            function(numIndexedBranches, numIndexedRepos, error) {
                 stopAnimation = true;
 
                 if ( error !== undefined ) {
@@ -1369,22 +451,23 @@ function renderGitLabPage(rule, page){
                     return;
                 }
 
-                token = _token;
-
                 $(insightNavLink.badge).html(
                     Number(numIndexedBranches).toLocaleString("en")
                 );
 
-                if ( page.search || ! page.show )
+                if ( ! page.show )
                     return;
+
+                var hostId = rule.host.type;
 
                 var params = {
                     id: "main",
                     iframeSrc: 
                         rule.gitsense.baseUrl+"/"+
                         "insight/"+
-                        rule.host.type+"/"+
-                        "index.html?auth=token:"+token,
+                        hostId+"?"+
+                        "e=true&"+
+                        "r="+page.owner+"/"+page.repo,
                     targetOrigin: rule.gitsense.baseUrl,
                     hash: window.location.hash,
                     height: "500px",
@@ -1392,7 +475,7 @@ function renderGitLabPage(rule, page){
                 };
 
                 $(renderTo).html("");
-                renderGitSense(renderTo, rule, token, params);
+                renderGitSense(renderTo, rule, params);
             }
         );
 
@@ -1522,6 +605,9 @@ function renderGitLabPage(rule, page){
         }
 
         function updateMergeCommitsLinks(startedAt) {
+            if ( rule.host.xFrameOptions === undefined || rule.host.xFrameOptions === "DENY" )
+                return;
+
             if ( startedAt === undefined )
                 startedAt = new Date().getTime();
             else if ( new Date().getTime() - startedAt > 5000 )
@@ -1556,354 +642,9 @@ function renderGitLabPage(rule, page){
             }
         }
     }
-
-    function renderSearchPage() {
-        var search = parseSearch();
-
-        if ( search.projectId === undefined )
-            return;
-
-        var codeBadge     = page.codeNav.children[0].childNodes[1],
-            commitsBadge  = page.commitsNav.children[0].childNodes[1],
-            codeMatches   = $(codeBadge).text(),
-            commitMatches = $(commitsBadge).text(),
-            htmlUtil      = new sdes.utils.html(),
-            currentSearch = null;
-
-        if ( page.codeNav.className.match(/active/) )
-            currentSearch = "code";
-        else if ( page.commitsNav.className.match(/active/) )
-            currentSearch = "commits";
-
-        // This is true, if we've already executed the search
-        if ( isNaN(commitMatches) )
-            return;
-
-        var diffsLink = addDiffsNavLink();
-
-        new sdes.gitlab.data.repo(rule).get(
-            search.projectId,
-            function(repo, error){ 
-                if ( error !== undefined ) {
-                    if ( error.responseText.match(/Unauthorized/) )
-                        queryWithGitSense();
-                    else
-                        throw("Querying GitLab's API returned: "+error.responseText);
-
-                    return;
-                }
-
-                getTempToken(repo);
-
-                function queryWithGitSense() {
-                    new sdes.gitsense.data.repo(rule).queryHost(
-                        "gitlab",
-                        search.projectId,
-                        function(repo, error) {
-                            if ( error !== undefined ) {
-                                if ( error.responseText.match(/Unauthorized/) ) {
-                                    renderLoginRequired();
-                                } else  {
-                                    throw(
-                                        "Querying GitLab API with GitSense returned: "+
-                                        error.responseText
-                                    );
-                                }
-
-                                return;
-                            }
-
-                            getTempToken(repo);
-                        }
-                    );
-                }
-                
-                function renderLoginRequired() {
-                    $(codeBadge).html(codeMatches+" / NA");
-
-                    $(commitsBadge).html(commitMatches+" / NA ");
-
-                    if ( currentSearch !== "code" && currentSearch !== "commits" )
-                        return;
-
-                    addSearchingMsg(
-                        "Unable to perform GitSense "+
-                        (currentSearch === "code" ? "code" : "commits")+" "+
-                        "search, "+
-                        "GitLab login required for API queries."
-                    );
-                }
-            }
-        );
-
-        function parseSearch() {
-            var queries = window.location.search.replace(/^\?/,"").split("&"),
-                search  = {};
-
-            for ( var i = 0; i < queries.length; i++ ) {
-                var query = queries[i],
-                    temp  = query.split("="),
-                    key   = temp.shift(),
-                    value = temp.join("=");
-
-                if ( key === "project_id" ) 
-                    search.projectId = value;
-                else if ( key === "search" ) 
-                    search.args = getArgs(value);
-            }
-
-            return search;
-
-            function getArgs(query) {
-                var args = query.split("+");
-
-                for ( var i = 0; i < args.length; i++ )
-                    args[i] = decodeURIComponent(args[i]);
-
-                return args;
-            }
-        }
-
-        function renderLoginRequired() {
-            console.dir(page);
-        }
-
-        function getTempToken(repo) {
-            var temp  = repo.path_with_namespace.split("/"),
-                owner = temp[0],
-                name  = temp[1];
-
-            new sdes.gitsense.data.auth(rule).getTempToken(
-                owner,
-                name,
-                function(token, numIndexedBranches, numIndexedRepos, error) {
-                    if ( error !== undefined )
-                        throw error.responseText
-
-                    executeSearch(token, owner, name, repo.default_branch, search.args);
-                }
-            );
-        }
-
-        function addDiffsNavLink() {
-            var badge =
-                    htmlUtil.createSpan({
-                        html: "<span class='fa fa-refresh fa-spin'></span>",
-                        cls: "badge"
-                    }),
-                link = 
-                    htmlUtil.createLink({
-                        append: [
-                            htmlUtil.createTextNode("Diffs "),
-                            badge
-                        ],
-                        style: {
-
-                        }
-                    }),
-                li = 
-                    htmlUtil.createList({
-                        append: link
-                    });
-
-            page.commitsNav.parentNode.appendChild(li);
-
-            link.badge = badge;
-
-            return link; 
-        }
-
-        function addSearchingMsg(msg) {
-            var body = document.createElement("div");
-
-            body.style.marginTop = "15px";
-            body.style.marginBottom = "15px";
-
-            $(body).html(
-                msg === undefined ?
-                    "Searching default branch with GitSense "+
-                    "<span class='fa fa-spinner fa-spin' style='margin-left:5px;'></span>" 
-                    :
-                    msg
-            );
-
-            page.summary.parentNode.insertBefore(body, page.summary);
-
-            return body;
-        }
-
-        function executeSearch(token, owner, repo, defaultBranch, searchArgs) {
-            $(codeBadge).html(
-                codeMatches+" / "+
-                "<span class='fa fa-refresh fa-spin'></span>"
-            );
-
-            $(commitsBadge).html(
-                commitMatches+" / "+
-                "<span class='fa fa-refresh fa-spin'></span>"
-            );
-
-            $(diffsLink.badge).html("<span class='fa fa-refresh fa-spin'></span>");
-
-            var searchMsg = 
-                    currentSearch === "code" ||
-                    currentSearch === "commits" ?
-                        addSearchingMsg() :
-                        null; 
-
-            var idata    = new sdes.gitsense.data.insight(rule, token),
-                branchId = "gitlab:"+owner+"/"+repo+":"+defaultBranch,
-                href     = "/"+owner+"/"+repo+"?gitsense=insight#"+
-                           "b="+branchId+"&t=%TYPE%&q="+searchArgs.join("+"),
-                sabhref  = "/"+owner+"/"+repo+"?gitsense=insight#"+
-                           "_t=%TYPE%&_q="+searchArgs.join("+");
-
-            idata.getBranchHeads(
-                [branchId],
-                function(branchToLatest, error) {
-                    if ( error !== undefined ) {
-                        if ( error.responseText.match(/^{/) )
-                            branchToLatest = JSON.parse(error.responseText);
-                        else
-                            throw(error.responseText);
-                    }
-
-                    var branch = branchToLatest[branchId];
-
-                    if ( typeof(branch) === "string" ) {
-                        renderNoSearch();
-                        return;
-                    }
-
-                    if ( branch.indexedCommits ) {
-                        search("commits", branchId, branch.head, searchArgs);
-                    } else if ( currentSearch === "commits" ) {
-                        $(commitsBadge).html(commitMatches+" / NA");
-
-                        if ( searchMsg != null ) {
-                            $(searchMsg).html(
-                                "The commits on the "+defaultBranch+" branch has not been indexed, "+
-                                "unable to perform a GitSense commits search."
-                            );
-                        }
-                    }
-
-                    if ( branch.indexedSource )  {
-                        search("code", branchId, branch.head, searchArgs);
-                    } else if ( currentSearch === "code" ) {
-                        $(codeBadge).html(codeMatches+" / NA");
-
-                        if ( searchMsg != null ) {
-                            $(searchMsg).html(
-                                "The latest tree on the "+defaultBranch+" branch has not been indexed, "+
-                                "unable to perform a GitSense code search."
-                            );
-                        }
-                    }
-
-                    if ( branch.indexedDiffs)  {
-                        search("diffs", branchId, branch.head, searchArgs);
-                    } else {
-                        $(diffsLink.badge).html("NA");
-                    }
-                }
-            );
-
-            function renderNoSearch() {
-                $(codeBadge).html(codeMatches);
-                $(commitsBadge).html(commitMatches);
-                $(diffsLink.badge).html("N/A");
-
-                $(searchMsg).html(
-                    "Unable to search default branch.&nbsp; "+
-                    "<a href="+window.location.origin+"/"+owner+"/"+repo+"?gitsense=insight>"+
-                    "GitSense Insight"+
-                    "</a> not available."
-                );
-            }
-
-            function search(type, branchId, head, args) {
-                //if ( type === "code" ) 
-                //    $(searchMsg).text("Searching default branch with GitSense ...");
-
-                var _args = $.extend(true, [], args);
-                _args.push("cs:true");
-
-                idata.search(
-                    type,
-                    [branchId+"@@@"+head.name],
-                    _args,
-                    1,
-                    0,
-                    function(results) {
-                        var summary = results.search[branchId];
-
-                        if ( type === "commits" )
-                            updateCommitsSearch(summary);
-                        else if ( type === "code" )
-                            updateCodeSearch(summary);
-                        else if ( type === "diffs" )
-                            updateDiffsSearch(summary);
-                        else
-                            throw("Unrecognized GitSense search type '"+type+"'");
-                    }
-                );
-
-                function updateCommitsSearch(summary) {
-                    var total = summary.total;
-
-                    $(commitsBadge).html(commitMatches+" / "+ total);
-
-                    if ( currentSearch !== "commits" )
-                        return;
-
-                    $(searchMsg).html(
-                        "<a href=\""+href.replace("%TYPE%", "commits")+"\">"+
-                            "GitSense found "+total+" matching commit"+(total === 1 ? "" : "s")+" "+
-                            "on the "+defaultBranch+" branch"+
-                        "</a>.&nbsp; "+
-                        "<span class='fa fa-search' "+
-                            "style='margin-left:10px;margin-right:2px;;font-size:14px;'></span> "+
-                        "<a href=\""+sabhref.replace("%TYPE%", "commits")+"\">Search another branch.</a>"
-                    );
-                }
-
-                function updateCodeSearch(summary) {
-                    var total = summary.total;
-
-                    $(codeBadge).html(codeMatches+" / "+ total);
-
-                    if ( currentSearch !== "code" )
-                        return;
-
-                    $(searchMsg).html(
-                        "<a href=\""+href.replace("%TYPE%", "code")+"+cs:true\">"+
-                            "GitSense found "+total+" code result"+(total === 1 ? "" : "s")+" "+
-                            "with case-sensitive on & camelCase off on the "+
-                            defaultBranch+" branch"+
-                        "</a>.&nbsp; "+
-                        "<span class='fa fa-search' "+
-                            "style='margin-left:10px;margin-right:2px;;font-size:14px;'></span> "+
-                        "<a href=\""+sabhref.replace("%TYPE%", "code")+"+cs:true\">Search another branch.</a>"
-                    );
-                }
-
-                function updateDiffsSearch(summary) {
-                    var total = summary.total;
-
-                    $(diffsLink.badge).html(total);
-
-                    diffsLink.setAttribute(
-                        "href",
-                        href.replace("%TYPE%","diffs")
-                    );
-                }
-            }
-        }
-    }
 }
 
-function renderGitSense(renderTo, rule, token, params) {
+function renderGitSense(renderTo, rule, params) {
     if ( gitsenseIframe === null )
         gitsenseIframe = document.getElementById("gitsense-content-iframe");
 
@@ -1939,9 +680,7 @@ function renderGitSense(renderTo, rule, token, params) {
         // Do not remove the timeout.  The iframe knows when to ignore our messages.
         setTimeout(render, 50);
     }
-   
 }
-
 
 function receiveMessage(event) {
     var temp1 = event.data.split(":::::");
@@ -1958,7 +697,10 @@ function receiveMessage(event) {
     if ( sender !== "main" )
         return;
 
-    if ( key.toLowerCase() === "gswin" && rule.host.xFrameOptions === "DENY" ) {
+    if ( 
+        key.toLowerCase() === "gswin" && 
+        ( rule.host.xFrameOptions === undefined || rule.host.xFrameOptions === "DENY" )
+    ) {
         var url = new URL(value);
 
         if ( url.origin === window.location.origin )
@@ -1971,8 +713,12 @@ function receiveMessage(event) {
         setHash(value);
     else if ( key === "href" ) 
         setHref(value);
+    else if ( key === "page" )
+        gotoPage(value);
     else if ( key.toLowerCase() === "gswin" )
         openGitSenseWindow(value, key === "GSWIN" ? true : false);
+    else if ( key === "reload" )
+        window.location.reload();
     else
         console.log("Ignoring "+event.data);
 }
@@ -1985,6 +731,11 @@ function setHeight(height) {
     lastHeight = height;
 }
 
+function gotoPage(page) {
+    var href = window.location.href.replace(/\?.+/, "?gitsense=insight#"+page);
+    window.location.href = href; 
+}
+
 function setHash(hash) {
     ignoreHash = hash;
 
@@ -1993,10 +744,30 @@ function setHash(hash) {
 }
 
 function setHref(href) {
-    var url = new URL(href);
+    var url = null;
 
-    if ( url.origin !== window.location.origin )
+    try {
+        url = new URL(href);
+    } catch ( e ) {
+        throw(
+            "The following exception was thrown while trying to "+
+            "construct a URL based on '"+href+"':\n"+e
+        );
+    }
+
+    var isGitSenseUrl =
+            currentRule === null ?
+                null 
+                : 
+                new URL(currentRule.gitsense.baseUrl).origin === url.origin || 
+                href.match(/https:\/\/gitsense.com/) ? 
+                    true : 
+                    false;
+
+    if ( url.origin !== window.location.origin && ! isGitSenseUrl ) {
+        console.warn("INVALID GITSENSE URL: Ignoring set href request for \""+href+"\"");
         return;
+    }
 
     window.location.href = href;
 }

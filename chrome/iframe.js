@@ -47,9 +47,11 @@ function receiveMessage(event) {
 
             if ( 
                 meta.toLowerCase() !== "gswin" && 
-                meta !== "hash" && 
                 meta !== "commit" && 
-                meta != "href" 
+                meta !== "hash" && 
+                meta !== "href" &&
+                meta !== "page" &&
+                meta !== "reload"
             ) {
                 console.warn("Ignoring '"+meta+"' message");
                 return;
