@@ -12,9 +12,16 @@ function load() {
         saveErrorBody = document.getElementById("save-error"),
         newRuleButton = document.getElementById("new-rule-button"),
         restoreLink   = document.getElementById("restore"),
-        hostTypes     = ["", "github", "github-enterprise", "gitlab"],
         xFrameOptions = ["DENY", "SAMEORIGIN"],
         htmlUtil      = new sdes.utils.html();
+
+    var hostTypes = [
+        { id: "", label: ""}, 
+        { id: "github", label: "github.com" },
+        { id: "gitlab", label: "gitlab.com" },
+        { id: "github-ent", label: "Github Enterprise"},
+        { id: "gitlab-le", label: "GitLab CE/EE"}
+    ];
 
     restoreLink.onclick = restoreDefault;
 
@@ -34,6 +41,8 @@ function load() {
 
             if ( renderToBody === null )
                 throw("No element with the id '"+renderTo+"' found");
+
+            console.dir(rules);
 
             $(renderToBody).html("");
 
@@ -79,25 +88,25 @@ function load() {
                             getGitSenseSettings()+
                         "</div>";
 
-            var div = 
-                htmlUtil.createDiv({
-                    id: id,
-                    html: html,
-                    cls: "rule"
-                });
+                var div = 
+                    htmlUtil.createDiv({
+                        id: id,
+                        html: html,
+                        cls: "rule"
+                    });
 
                 renderToBody.appendChild(div);
 
-            renderToBody.style.borderBottom = "1px solid #666";
+                renderToBody.style.borderBottom = "1px solid #666";
 
                 function getHostTypes() {
                     var html = "<select id="+id+"-host-type>";
 
                     for ( var i = 0; i < hostTypes.length; i++ ) {
                         var type     = hostTypes[i],
-                            selected = type === rule.host.type ? "selected" : "";
+                            selected = type.id === rule.host.type ? "selected" : "";
 
-                        html += "<option "+selected+">"+type+"</option>";
+                        html += "<option value="+type.id+" "+selected+">"+type.label+"</option>";
                     }
 
                     html += "</select>";
@@ -125,7 +134,7 @@ function load() {
                         "<div class='block-header'>"+
                             "<span id="+id+"-host-title "+
                                 "style='font-weight:bold;'>"+
-                                "GitHub, GitHub Enterprise, and GitLab"+
+                                "github.com, gitlab.com, GitHub Enterprise, and GitLab CE/EE"+
                             "</span>"+
                         "</div>"+
                         "<div class='block-body'>"+

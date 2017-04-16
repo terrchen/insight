@@ -82,7 +82,7 @@ function pageChanged(rule, force) {
                 force
             );
             break; 
-        case "github-enterprise":
+        case "github-ent":
             new sdes.github.utils.page(rule).parse(
                 function(page) {
                     renderGitHubPage(rule, page)
@@ -91,6 +91,14 @@ function pageChanged(rule, force) {
             );
             break; 
         case "gitlab":
+            new sdes.gitlab.utils.page(rule).parse(
+                function(page) {
+                    renderGitLabPage(rule, page)
+                },
+                force
+            );
+            break; 
+        case "gitlab-le":
             new sdes.gitlab.utils.page(rule).parse(
                 function(page) {
                     renderGitLabPage(rule, page)
@@ -420,12 +428,13 @@ function renderGitLabPage(rule, page) {
             // Show the subnavs, if they exists. Note we are starting at 1
             for ( var i = 1; i < page.navLinks.length; i++ )
                 $(page.navLinks[i]).show();
+
         }
         
         if ( page.show ) 
             renderTo = createGitSenseBody();
-        else if ( page.mergeRequest !== null && page.mergeRequest.page === "commits" )
-            updateMergeCommitsLinks();
+        else if ( page.blame !== null ) 
+            updateBlameCommits();
 
         new sdes.gitsense.data.insight(rule).stat(
             rule.host.type,
@@ -637,6 +646,88 @@ function renderGitLabPage(rule, page) {
                 link.style.cursor = "pointer";
 
                 link.onclick = function()  {
+                    openGitSenseWindow(href);
+                }
+            }
+        }
+
+        function updateBlameCommits() {
+            var stop = page.blame.commitElems.length,
+                halt = false;
+
+            for ( var i = 0; i < stop; i++ ) {
+                addIcons(page.blame.commitElems[i*3]);
+
+                if ( halt )
+                    break;
+            }
+
+            function addIcons(elem) {
+                if ( elem.childNodes.length !== 3 ) {
+                    console.warn("Don't know how to parse the following element");
+                    console.dir(elem);
+                    halt = true;
+                    return;
+                }
+
+                var commitLink = elem.childNodes[1];
+
+                if ( commitLink.tagName !== "A" ) {
+                    console.warn("Don't know how to parse the following element");
+                    console.dir(elem);
+                    halt = true;
+                    return;
+                }
+
+                var commit    = commitLink.href.split("/").pop(),
+                    repo      = page.owner+"/"+page.repo,
+                    host      = rule.host.type,
+                    branchId  = host+":"+repo+":"+page.blame.branch,
+                    path      = page.blame.path,
+                    query     = "head:"+commit+"+path:"+path+"+follow:true";
+
+                var bolt = htmlUtil.createLink({
+                    cls: "fa fa-bolt pull-right",
+                    style: {
+                        fontSize: "12px",
+                        position: "relative",
+                        top: "5px",
+                        marginLeft: "5px",
+                        cursor: "pointer"
+                    }
+                });
+
+                var history = htmlUtil.createLink({
+                    cls: "fa fa-history pull-right",
+                    href:  "/"+repo+"?gitsense=insight&r="+repo+"#b="+branchId+"&q="+query,
+                    style: {
+                        fontSize: "12px",
+                        position: "relative",
+                        top: "5px",
+                        marginLeft: "5px",
+                        cursor: "pointer"
+                    }
+                });
+
+                elem.parentNode.insertBefore(bolt, elem);
+                elem.parentNode.insertBefore(history, elem);
+
+                bolt.onclick = function() {
+                    var href =
+                        rule.gitsense.baseUrl+"/"+
+                        "insight/"+
+                        host+
+                        "?"+
+                        "dw=true&"+
+                        "r="+repo+"&"+
+                        "#"+
+                        "b="+branchId+"&"+
+                        "q="+query+"&"+
+                        "dr=history&"+
+                        "dp="+path+"&"+
+                        "dc=false&"+
+                        "dcl=&df=&dl=&dvm=";
+
                     openGitSenseWindow(href);
                 }
             }
@@ -1024,7 +1115,7 @@ function renderNoRouteToHost(renderTo, error) {
 }
 
 function renderUnauthorized(type, renderTo, rule, page) {
-    var token = type === "gitlab" ? "GitLab access token" : "GitHub personal token";
+    var token = type.match("gitlab") ? "GitLab access token" : "GitHub personal token";
 
     $(renderTo).html(
         "<div style='padding:30px;padding-top:10px;width:800px;line-height:1.5;'>"+
