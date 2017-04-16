@@ -176,12 +176,12 @@ function renderGitHubPage(rule, page) {
             function(numIndexedBranches, numIndexedRepos, error) {
                 stopAnimation = true;
 
-                if ( error !== undefined )
-                    throw error.responseText;
+                if ( error !== undefined ) {
+                    $(insightTab.counter).html("0");
+                    throw error;
+                }
 
-                $(insightTab.counter).html(
-                    Number(numIndexedBranches).toLocaleString("en")
-                );
+                $(insightTab.counter).html(Number(numIndexedBranches).toLocaleString("en"));
 
                 if ( ! page.show )
                     return;
@@ -213,7 +213,9 @@ function renderGitHubPage(rule, page) {
             function(repo, error){ 
                 if ( error !== undefined ) {
                     githubRepoError = JSON.parse(error.responseText);
-                    return;
+
+                    if ( githubRepoError.message.match(/authenticate/) )
+                        return;
                 }
 
                 githubRepo = repo;
@@ -950,7 +952,7 @@ function createOverlayWindow(href, targetOrigin, max) {
     externalLinkCell.style.paddingTop = "1px";
     externalLinkCell.appendChild(externalLink);
 
-    var gotoLinkText = document.createTextNode(href);
+    var gotoLinkText = document.createTextNode("GitSense for "+getHostLabel());
     var gotoLink = document.createElement("a");
     gotoLink.setAttribute("title", "Open in new window");
     gotoLink.href = href;
@@ -969,7 +971,6 @@ function createOverlayWindow(href, targetOrigin, max) {
     gotoLinkCell.style.verticalAlign = "middle";
     gotoLinkCell.style.paddingLeft = "15px";
     gotoLinkCell.style.paddingTop = "1px";
-    gotoLinkCell.style.fontFamily = "monospace";
     gotoLinkCell.appendChild(gotoLink);
 
     var close = document.createElement("span");
@@ -1140,3 +1141,23 @@ function renderUnauthorized(type, renderTo, rule, page) {
     );
 }
 
+function getHostLabel() {
+    var rule = new sdes.utils.config().getRule();
+
+    if ( rule === null )
+        return null;
+
+    if ( rule.host.type === "github" )
+        return "github.com";
+
+    if ( rule.host.type === "github-ent" )
+        return "GitHub Enterprise";
+
+    if ( rule.host.type === "gitlab" )
+        return "gitlab.com";
+
+    if ( rule.host.type === "gitlab-le" )
+        return "GitLab CE/EE";
+
+    return null;
+}
