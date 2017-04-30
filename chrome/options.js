@@ -17,13 +17,27 @@ function load() {
 
     var hostTypes = [
         { id: "", label: ""}, 
-        { id: "github", label: "github.com" },
-        { id: "gitlab", label: "gitlab.com" },
-        { id: "github-ent", label: "Github Enterprise"},
-        { id: "gitlab-le", label: "GitLab CE/EE"}
+        { id: "github", label: "github.com", api: "https://api.github.com" },
+        { id: "gitlab", label: "gitlab.com", api: "https://gitlab.com/api/v3" },
+        { id: "github-ent", label: "Github Enterprise", api: "BASE_URL/api/v3" },
+        { id: "gitlab-le", label: "GitLab CE/EE", api: "BASE_URL/api/v3" }
     ];
 
+    var hostToInfo = mapHostToInfo();
+
     restoreLink.onclick = restoreDefault;
+
+    function mapHostToInfo() {
+        var hostToInfo = {};
+
+        for ( var i = 0; i < hostTypes.length; i++ ) {
+            var info = hostTypes[i];
+
+            hostToInfo[info.id] = info;
+        }
+
+        return hostToInfo;
+    }
 
     function update(localConfig) {
         var idToInput    = {},
@@ -42,8 +56,6 @@ function load() {
             if ( renderToBody === null )
                 throw("No element with the id '"+renderTo+"' found");
 
-            console.dir(rules);
-
             $(renderToBody).html("");
 
             for ( var i = 0; i < rules.length; i++ )
@@ -61,7 +73,7 @@ function load() {
                     html =
                         "<div class=row>"+
                             "<input id="+id+"-matches type=text "+
-                                "placeholder='URL match pattern' "+
+                                "placeholder='URL pattern' "+
                                 "value='"+rule.matches+"' "+
                                 "style='width:480px;'>"+
                             "<span class='options'>"+
@@ -106,7 +118,7 @@ function load() {
                         var type     = hostTypes[i],
                             selected = type.id === rule.host.type ? "selected" : "";
 
-                        html += "<option value="+type.id+" "+selected+">"+type.label+"</option>";
+                        html += "<option value=\""+type.id+"\" "+selected+">"+type.label+"</option>";
                     }
 
                     html += "</select>";
@@ -130,6 +142,8 @@ function load() {
                 }
 
                 function getHostSettings() {
+                    var baseUrl = rule.host.baseUrl;
+
                     var html =
                         "<div class='block-header'>"+
                             "<span id="+id+"-host-title "+
@@ -141,7 +155,7 @@ function load() {
                             "<table>"+
                                 "<tr>"+
                                     "<td class=field-cell>Type</td>"+
-                                    "<td class=field-cell>API</td>"+
+                                    "<td class=field-cell>Base URL</td>"+
                                     "<td class=field-cell>X-Frame-Options</td>"+
                                     "<td class=field-cell style='display:none;'>Access token</td>"+
                                 "</tr>"+
@@ -149,8 +163,8 @@ function load() {
                                     "<td class=field-cell>"+getHostTypes()+"</td>"+
                                     "<td class=field-cell>"+
                                         "<input type=text "+
-                                            "id="+id+"-host-api "+
-                                            "value='"+rule.host.api+"' "+
+                                            "id="+id+"-host-baseUrl "+
+                                            "value='"+baseUrl+"' "+
                                             "style='width:270px'>"+
                                     "</td>"+
                                     "<td class=field-cell>"+getXFrameOptions()+"</td>"+
@@ -254,6 +268,12 @@ function load() {
                                 continue;
                             case "host":
                                 for ( var hostKey in rule[key] ) {
+
+                                    // This values gets dynamically defined when the rules
+                                    // are saved
+                                    if ( hostKey === "api" )
+                                        continue;
+
                                     var hostId = id+"-host-"+hostKey,
                                         input  = document.getElementById(hostId);
 
@@ -411,6 +431,9 @@ function load() {
                                 return;
                             case "host":
                                 for ( var hostKey in rule[key] ) {
+                                    if ( hostKey === "api" )
+                                        continue;
+
                                     var hostId = id+"-host-"+hostKey,
                                         input  = idToInput[hostId];
 
@@ -473,6 +496,16 @@ function load() {
 
                 if ( newRules === null )
                     return;
+
+                for ( var i = 0; i < newRules.length; i++ ) {
+                    var rule = newRules[i],
+                        host = rule.host;
+
+                    rule.gitsense.baseUrl = new URL(rule.gitsense.baseUrl).origin;
+                    
+                    host.baseUrl = new URL(host.baseUrl).origin;
+                    host.api     = hostToInfo[host.type].api.replace(/BASE_URL/, host.baseUrl);
+                }
 
                 var newConfig = { routingRules: newRules };
 
@@ -588,6 +621,9 @@ function load() {
                                     newRule[key] = {};
 
                                     for ( var hostKey in rule[key] ) {
+                                        if ( hostKey === "api" )
+                                            continue;
+
                                         var hostId = id+"-host-"+hostKey,
                                             input  = idToInput[hostId],
                                             value  = clean(input.value);
@@ -596,7 +632,7 @@ function load() {
 
                                         if ( 
                                             value === "" &&
-                                            (hostKey === "type" || hostKey === "api")
+                                            (hostKey === "type" || hostKey === "baseUrl")
                                         ) {
                                             showError(input);
 
@@ -608,11 +644,11 @@ function load() {
                                             continue;
                                         }
 
-                                        if ( hostKey === "api" && ! value.match(/^https*:\/\//) ) {
+                                        if ( hostKey === "baseUrl" && ! value.match(/^https*:\/\//) ) {
                                             showError(input);
 
                                             errors.push(
-                                                "Invalid "+key+" API URL in rule "+ruleNum
+                                                "Invalid "+key+" base URL in rule "+ruleNum
                                             );
 
                                             continue;
@@ -706,7 +742,7 @@ function load() {
 
                     for ( var i = 0; i < rules.length; i++ ) {
                         var rule = rules[i],
-                            urls = [ rule.matches, rule.host.api, rule.gitsense.baseUrl ];
+                            urls = [ rule.matches, rule.host.baseUrl, rule.gitsense.baseUrl ];
 
                         for ( var j = 0; j < urls.length; j++ ) {
                             var a = document.createElement("a");
@@ -729,6 +765,7 @@ function load() {
                     host: {
                         type: "",
                         api: "",
+                        baseUrl: "",
                         secret: ""
                     }
                 },

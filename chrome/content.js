@@ -53,7 +53,7 @@ function pageChanged(rule, force) {
     if ( rule === null )
         return;
 
-    if ( window.location.pathname.match(/\/search$/) )
+    if ( window.location.pathname.match(/\/search$/) ) 
         force = true;
 
     var lastUrl    = lastLocation === null ? null : lastLocation.origin+lastLocation.pathname,
@@ -143,7 +143,7 @@ function renderGitHubPage(rule, page) {
     if ( page === null )
         return;
 
-    if ( page.type === "org" || page.search )
+    if ( page.type === "org" )
         return;   // Not supporting for now
     else if ( page.type === "repo" )
         renderRepoPage();
@@ -151,66 +151,32 @@ function renderGitHubPage(rule, page) {
         throw("Error: Unrecognized GitHub page type '"+page.type+"'");
 
     function renderRepoPage() {
+        console.dir(page);
+
         var htmlUtil        = new sdes.utils.html(),
-            containers      = document.getElementsByClassName("container"),
-            pageHead        = document.getElementsByClassName("pagehead")[0],
-            header          = containers[0],
             stopAnimation   = false,
             renderTo        = null,
             githubRepo      = null,
             githubRepoError = null,
-            insightTab      = null;
+            insightTab      = null,
+            stopAnimation   = false,
+            typeToNav       = {};
 
-        if ( page.tabs !== undefined )
+        if ( page.tabs !== undefined && page.search === null )
             insightTab = addInsightTab();
 
+        if ( page.search !== null )
+            updateSearchNav();
+
         if ( page.show ) 
-            renderTo = createGitSenseBody();
+            renderTo = createGitSenseBody(page.search !== null ? 980 : null);
         else
             fixHeader();
-
-        new sdes.gitsense.data.insight(rule).stat(
-            rule.host.type,
-            page.owner,
-            page.repo,
-            function(numIndexedBranches, numIndexedRepos, error) {
-                stopAnimation = true;
-
-                if ( error !== undefined ) {
-                    $(insightTab.counter).html("0");
-                    throw error;
-                }
-
-                $(insightTab.counter).html(Number(numIndexedBranches).toLocaleString("en"));
-
-                if ( ! page.show )
-                    return;
-
-                var hostId = rule.host.type;
-
-                var params = {
-                    id: "main",
-                    iframeSrc: 
-                        rule.gitsense.baseUrl+"/"+
-                        "insight/"+
-                        hostId+"?"+
-                        "e=true&"+
-                        "r="+page.owner+"/"+page.repo,
-                    targetOrigin: rule.gitsense.baseUrl,
-                    hash: window.location.hash,
-                    height: "500px",
-                    baseUrl: window.location.origin 
-                };
-
-                $(renderTo).html("");
-                renderGitSense(renderTo, rule, params);
-            }
-        );
 
         new sdes.github.data.repo(rule).get(
             page.owner, 
             page.repo,
-            function(repo, error){ 
+            function(repo, error) {
                 if ( error !== undefined ) {
                     githubRepoError = JSON.parse(error.responseText);
 
@@ -222,39 +188,132 @@ function renderGitHubPage(rule, page) {
             }
         );
 
+        new sdes.gitsense.data.insight(rule).stat(
+            rule.host.type,
+            page.owner,
+            page.repo,
+            function(numIndexedBranches, numIndexedRepos, token, error) {
+                stopAnimation = true;
+
+                if ( error !== undefined ) {
+                    $(insightTab.counter).html("0");
+                    throw error;
+                }
+
+                if ( page.search === null )
+                    $(insightTab.counter).html(Number(numIndexedBranches).toLocaleString("en"));
+
+                if ( page.pull !== null && numIndexedBranches !== 0 )
+                    renderPull();
+
+                if ( page.search !== null ) {
+                    updateSearch(token, new Date().getTime() + 2000);
+
+                    if ( 
+                        page.search.selectedType !== "icode" && 
+                        page.search.selectedType !== "icommits" && 
+                        page.search.selectedType !== "idiffs" 
+                    ) {
+                        return;
+                    }
+                }
+
+                if ( ! page.show )
+                    return;
+
+                if ( githubRepo === null ) 
+                    wait(new Date().getTime()+2000);
+                else
+                    next();
+
+                function wait(stopAt) {
+                    if ( new Date().getTime() > stopAt ) {
+                        console.err("Nothing known about this repo ... giving up");
+                        return;
+                    }
+
+                    if ( githubRepo === null )
+                        setTimeout(wait,50);
+                    else
+                        next();
+                }
+
+                function next() {
+                    var hostId = rule.host.type;
+
+                    var params = {
+                        id: "main",
+                        iframeSrc: 
+                            rule.gitsense.baseUrl+"/"+
+                            "insight/"+
+                            hostId+"?"+
+                            "e=true&"+
+                            "r="+page.owner+"/"+page.repo+
+                            (
+                                page.search === null ? 
+                                    "" : 
+                                    "&"+
+                                    "s=true"+
+                                    "#"+
+                                    "t="+page.search.selectedType+"&"+
+                                    "b="+getDefaultBranchId(githubRepo)+"&"+
+                                    "q="+getSearchArgs().join("+")+
+                                    ( page.search.selectedType === "icode" ? "+cs:true" : "")
+                            ),
+                        targetOrigin: rule.gitsense.baseUrl,
+                        hash: window.location.hash,
+                        height: "500px",
+                        baseUrl: window.location.origin 
+                    };
+
+                    console.dir(params);
+
+                    $(renderTo).html("");
+                    renderGitSense(renderTo, rule, params);
+                }
+            }
+        );
+
+
         function fixHeader() {
+            var containers = document.getElementsByClassName("container"),
+                header     = containers[0];
+
             header.style.width        = null;
             header.style.paddingLeft  = null;
             header.style.paddingRight = null;
         }
 
-        function createGitSenseBody() {
-            var renderTo = htmlUtil.createDiv(),
-                container;
+        function createGitSenseBody(width) {
+            var renderTo = htmlUtil.createDiv({
+                style: {
+                    width: width+"px"
+                }
+            });
 
-            for ( var i = 0; i < containers.length; i++ ) {
-                if ( ! containers[i].className.match(/experiment-repo-nav/) )
-                    continue;
+            if ( page.search === null ) {
+                var containers = document.getElementsByClassName("container"),
+                    pageHead   = document.getElementsByClassName("pagehead")[0],
+                    header     = containers[0],
+                    tabBody    = page.tabs.parentNode,
+                    infoBar    = pageHead.children[0];
 
-                container = containers[i];
+                header.style.width        = "100%";
+                header.style.paddingLeft  = "20px";
+                header.style.paddingRight = "20px";
+
+                pageHead.style.marginBottom = "5px";
+
+
+                tabBody.style.width       = "100%";
+                tabBody.style.paddingLeft = "5px";
+
+                infoBar.style.width        = "100%";
+                infoBar.style.paddingLeft  = "20px";
+                infoBar.style.paddingRight = "20px";
             }
 
-            header.style.width        = "100%";
-            header.style.paddingLeft  = "20px";
-            header.style.paddingRight = "20px";
-
-            container.parentNode.appendChild(renderTo);
-            pageHead.style.marginBottom = "5px";
-
-            var tabBody = page.tabs.parentNode;
-            var infoBar = pageHead.children[0];
-
-            tabBody.style.width       = "100%";
-            tabBody.style.paddingLeft = "5px";
-
-            infoBar.style.width        = "100%";
-            infoBar.style.paddingLeft  = "20px";
-            infoBar.style.paddingRight = "20px";
+            page.content.parentNode.appendChild(renderTo);
 
             var dots = 
                     htmlUtil.createSpan({
@@ -266,14 +325,16 @@ function renderGitHubPage(rule, page) {
                 h3 = 
                     htmlUtil.createHeader3({
                         append: [ 
-                            htmlUtil.createTextNode("Loading GitSense Insight "),
+                            htmlUtil.createTextNode("Loading GitSense "),
                             dots
                         ]
                     }),
 
+                msg = getSecurityMessage(htmlUtil, rule),
+
                 loadBody = 
                     htmlUtil.createDiv({
-                        append: [ h3 ],
+                        append: [ h3, msg ],
                         style: {
                             color: "#333",
                             padding: "30px",
@@ -361,7 +422,7 @@ function renderGitHubPage(rule, page) {
                     }),
                 counter = 
                     htmlUtil.createSpan({
-                        cls: "counter",
+                        cls: "Counter counter",
                         html: "&nbsp; &nbsp"
                     }),
                 insightTab = htmlUtil.createLink({
@@ -391,6 +452,476 @@ function renderGitHubPage(rule, page) {
 
             return insightTab;
         }
+
+        function renderPull() {
+            // For now, we'll just add the insight link
+            addInsightTab();
+ 
+            function addInsightTab() {
+                var needToAdd = true,
+                    filesTab  = null,
+                    tabs      = page.pull.tabs;
+
+                for ( var i = 0; i < tabs.children.length; i++ ) 
+                {
+                    var tab = page.pull.tabs.children[i];
+
+                    if ( $(tab).html().match(/Files/) )
+                        filesTab = tab;
+                }
+
+                if ( filesTab === null )
+                    return;
+
+                var label =
+                        htmlUtil.createSpan({
+                            html: "<span class='octicon octicon-link-external' "+
+                                  "style='margin-right:3px;'></span> "+
+                                  "Insight ",
+                        }),
+                    insightTab = htmlUtil.createLink({
+                        id: "gitsense-pr-tab",
+                        cls: "tabnav-tab",
+                        target: "_blank",
+                        href: 
+                            rule.gitsense.baseUrl+"/insight/"+
+                            rule.host.type+"?r="+page.owner+"/"+page.repo+
+                            "#p=ipom&q="+page.pull.number,
+                        append: [ label ],
+                        style: {
+                            cursor: "pointer"
+                        }
+                    });
+
+                if ( filesTab !== null )
+                    tabs.insertBefore(insightTab, filesTab.nextSibling);
+                else
+                    tabs.appendChild(insightTab);
+
+                return insightTab;
+            }
+        }
+
+        function updateSearchNav() {
+            var navs      = page.search.navs,
+                typeToNav = page.search.typeToNav,
+                issuesNav = typeToNav.issues;
+
+            for ( var i = 0; i < navs.length; i++ ) {
+                var nav  = navs[i],
+                    href = nav.getAttribute("href");
+
+                if ( href.match(/gitsense=insight/) )
+                    nav.parentNode.removeChild(nav);
+            }
+
+            typeToNav.icode    = addNav("iCode");
+            typeToNav.icommits = addNav("iCommits");
+            typeToNav.idiffs   = addNav("iDiffs");
+
+            navs.appendChild(typeToNav.icode);
+            navs.appendChild(typeToNav.icommits);
+            navs.appendChild(typeToNav.idiffs);
+
+            for ( var type in typeToNav ) {
+                var nav  = typeToNav[type],
+                    href = nav.getAttribute("href");
+
+                if ( ! type.match(/^i/) && href.match(/gitsense=insight/)) {
+                    nav.setAttribute(
+                        "href", 
+                        href.replace(/gitsense=insight&*/, "")
+                    );
+                }
+
+                if ( page.search.selectedType === type ) {
+                    nav.selected = true;
+
+                    if ( ! nav.className.match(/selected/) )
+                        nav.setAttribute("class", nav.className+" selected")
+                } 
+                else {
+                    nav.selected = false;
+                    nav.setAttribute("class", nav.className.replace("selected", ""))
+                }
+            }
+
+            var deg  = 0;
+
+            animateSync();
+
+            var stopAt = new Date().getTime() + 2000;
+
+            function addNav(label) {
+                var href = 
+                        window.location.href
+                            .replace(/type=(\w)*/, "type="+label.toLowerCase())
+                            .replace(/\?(gitsense=insight)*&*/, "?gitsense=insight&"),
+
+                    sync = 
+                        htmlUtil.createSpan({
+                            cls: "octicon octicon-sync",
+                            style: {
+                                marginRight: "0px",
+                            }
+                        }),
+
+                    counter = 
+                        htmlUtil.createSpan({
+                            append: [ sync ],
+                            cls: "Counter ml-2"
+                        }),
+
+                    nav = 
+                        htmlUtil.createLink({
+                            cls: "underline-nav-item",
+                            href: href,
+                            append: [
+                                htmlUtil.createTextNode(" "+label),
+                                counter
+                            ],
+                            style: {
+                                cursor: "pointer"
+                            }
+                        });
+
+                nav.counter = counter;
+                nav.sync    = sync;
+
+                return nav;
+            }
+
+            function addCommitsSearchMsg() {
+                if ( new Date().getTime() > stopAt )
+                    return;
+
+                var searchResults = document.getElementById("commit_search_results"),
+                    blankElems    = document.getElementsByClassName("blankslate"),
+                    sortElems     = document.getElementsByClassName("sort-bar"),
+                    sortBar       = null,
+                    blankSlate    = null,
+                    tabsBody      = null;
+
+                if ( sortElems !== null && sortElems.length !== 0  )
+                    sortBar = sortElems[0];
+
+                if ( blankElems !== null && blankElems.length !== 0 )
+                    blankSlate = blankElems[0];
+
+                if ( searchResults === null && sortBar === null && blankSlate === null ) {
+                    setTimeout(addCommitsSearchMsg, 50);
+                    return;
+                }
+
+                function renderTabs(select) { 
+                    if ( tabsBody != null )
+                        tabsBody.parentNode.removeChild(tabsBody);
+
+                    var page = getSearchPage(),
+                        shas = getPageShas();
+
+                    tabsBody = htmlUtil.createDiv({style: { marginBottom: "25px" }});
+
+                    searchResults.parentNode.insertBefore(tabsBody, searchResults);
+
+                    var tabs = [ 
+                        { id: "commits", label: "Commits"},
+                        { id: "changes", label: "Changes" }
+                    ];
+
+                    var tabBuilder = new sdes.github.ui.tabs();
+
+                    for ( var i = 0; i < tabs.length; i++ ) {
+                        var tab = tabs[i];
+
+                        tabBuilder.add({
+                            id: tab.id,
+                            html: tab.label,
+                            selected: tab.id === select ? true : false,
+                            onclick: clicked
+                        });
+                    }
+
+                    $(tabsBody).html("");
+    
+                    tabsBody.appendChild(tabBuilder.build());
+
+                    function clicked(id, tab) {
+                        selectedTab = id;
+                        
+                        switch(id) {
+                            case "commits":
+                                $(matchingCommitsBody).show();
+                                break;
+                            default:
+                                throw("GitSense: Unrecognized tab type '"+id+"'");
+                        }
+
+                        renderTabs();
+                    }
+
+                    function getPageShas() {
+                        var elems = document.getElementsByClassName("sha"),
+                            shas  = [];
+
+                        for ( var i = 0; i < elems.length; i++ )
+                            shas.push(elems[i].href.split("/").pop());
+
+                        return shas;
+                    }
+                }
+            }
+
+            function addCodeSearchMsg() { //>>>
+                if ( new Date().getTime() > stopAt )
+                    return;
+
+                var searchResults = document.getElementById("code_search_results"),
+                    searchHead    = document.getElementsByClassName("codesearch-head")[0],
+                    blankElems    = document.getElementsByClassName("blankslate"),
+                    sortElems     = document.getElementsByClassName("sort-bar"),
+                    sortBar       = null,
+                    blankSlate    = null;
+
+                if ( sortElems !== null && sortElems.length !== 0  )
+                    sortBar = sortElems[0];
+
+                if ( blankElems !== null && blankElems.length !== 0 )
+                    blankSlate = blankElems[0];
+
+                if ( searchResults === null && sortBar === null && blankSlate === null ) {
+                    setTimeout(addCodeSearchMsg, 50);
+                    return;
+                }
+            } //<<<
+
+            function animateSync() { //>>>
+                var count = 0;
+
+                for ( var i = 0; i < navs.length; i++ ) {
+                    var nav = navs[i];
+
+                    if ( nav.sync === null )
+                        count++;
+                }
+
+                if ( count === navs.length )
+                    return;
+
+                deg += 10;
+
+                if ( deg > 360 )
+                    deg = 0;
+
+                for ( var i = 0; i < navs.length; i++ ) {
+                    var nav = navs[i];
+
+                    if ( nav.sync == null )
+                        continue;
+
+                    try {
+                        nav.sync.style.transform = "rotate("+deg+"deg)";
+                    } catch (e) {
+                        // Ignore exceptions since the sync element can be removed at anytime.
+                    }
+                }
+
+                setTimeout(animateSync, 50);
+            } //<<<
+        }
+
+        function updateSearch(token, stopAt) { //>>>
+            if ( new Date().getTime() > stopAt )
+                return;
+
+            var typeToNav  = page.search.typeToNav,
+                diffsNav   = typeToNav.idiffs,
+                codeNav    = typeToNav.icode,
+                commitsNav = typeToNav.icommits;
+
+            if ( diffsNav === null ) {
+                setTimeout(retry,100);
+                return;
+            }
+            
+            if ( githubRepoError !== null ) {
+                renderNoSearch();
+                return;
+            }
+
+            if ( githubRepo === null ) {
+                setTimeout(retry,100);
+                return;
+            };
+
+            var searchArgs = getSearchArgs(),
+                idata      = new sdes.gitsense.data.insight(rule, token),
+                branchId   = getDefaultBranchId(githubRepo),
+                href       = "/"+page.owner+"/"+page.repo+"?gitsense=insight#"+
+                             "b="+branchId+"&t=%TYPE%&q="+searchArgs.join("+"),
+                sabhref    = "/"+page.owner+"/"+page.repo+"?gitsense=insight#"+
+                             "&_t=%TYPE%&_q="+searchArgs.join("+");
+
+            idata.getBranchHeads(
+                [branchId],
+                function(branchToLatest, error) {
+                    if ( error !== undefined ) {
+                        if ( error.responseText.match(/^{/) )  // FIXME
+                            branchToLatest = JSON.parse(error.responseText);
+                        else
+                            throw(error.responseText);
+                    }
+
+                    var branch = branchToLatest[branchId];
+
+                    if ( typeof(branch) === "string" ) {
+                        renderNoSearch();
+                        return;
+                    }
+
+                    if ( branch.indexedCommits )
+                        search("commits", branchId, branch.head, searchArgs);
+                    //else
+                        //$(searchMsg).text("GitSense commits search is currently not available.");
+
+                    if ( branch.indexedSource ) 
+                        search("code", branchId, branch.head, searchArgs);
+                    else
+                        $(codeNav.counter).text("N/A");
+
+                    //else
+                        //$(searchMsg).text("GitSense code search is currently not available.");
+
+                    if (branch.indexedDiffs) {
+                        search("diffs", branchId, branch.head, searchArgs);
+                    } else {
+                        $(diffsNav.counter).text("N/A");
+                        diffsNav.sync = null;
+                    }
+                }
+            );
+
+            function retry() {
+                updateSearch(token, stopAt);
+            }
+
+            function renderNoSearch() { //>>>
+                $(commitsNav.counter).text(commitsNav.numMatches);
+                $(codeNav.counter).text(codeNav.numMatches);
+                $(diffsNav.counter).text("N/A");
+                $(searchMsg).html(
+                    "Unable to search default branch.&nbsp; "+
+                    "<a href="+window.location.origin+"/"+page.owner+"/"+page.repo+"?gitsense=insight>"+
+                    "GitSense Insight"+
+                    "</a> not available."
+                );
+            } //<<<
+
+            function search(type, branchId, head, args) {//>>>
+                //if ( type === "code" && codeNav.selected )
+                //    $(searchMsg).text("Searching default branch with GitSense ...");
+                //else if ( type === "commits" && commitsNav.selected )
+                //    $(searchMsg).text("Searching default branch with GitSense ...");
+
+                var _args = $.extend(true, [], args);
+
+                if ( type === "code" )
+                    _args.push("cs:true");
+
+                idata.search(
+                    type,
+                    [branchId+"@@@"+head.name],
+                    _args,
+                    1,
+                    0,
+                    function(results, error) {
+                        if ( error !== undefined && ! error.responseText.match(/No search arguments/) ) 
+                            throw error.responseText;
+
+                        var summary = 
+                                error === undefined ? 
+                                    results.search[branchId] :
+                                    { total: 0 };
+
+                        if ( type === "commits" )
+                            updateCommitsSearch(summary);
+                        else if ( type === "code" )
+                            updateCodeSearch(summary);
+                        else if ( type === "diffs" )
+                            updateDiffsSearch(summary);
+                    }
+                );
+
+                function updateCommitsSearch(summary) {
+                    commitsNav.sync = null;
+                    $(commitsNav.counter).html(Number(summary.total).toLocaleString("en"));
+                }
+
+                function updateCodeSearch(summary) {
+                    codeNav.sync = null;
+                    $(codeNav.counter).text(Number(summary.total).toLocaleString("en"));
+                }
+
+                function updateDiffsSearch(summary) {
+                    diffsNav.sync = null;
+                    $(diffsNav.counter).text(Number(summary.total).toLocaleString("en"));
+                }
+            } //<<<
+        } //<<<
+    }
+
+    function getDefaultBranchId(repo) {
+        return rule.host.type+":"+page.owner+"/"+page.repo+":"+repo.default_branch;
+    }
+ 
+    function getSearchArgs() {
+        var queries = window.location.search.split("&"),
+            args    = [];
+
+        for ( var i = 0; i < queries.length; i++ ) {
+            var query = queries[i].replace(/^\?/,"");
+
+            if ( ! query.match(/^(q|l)=/) )
+                continue;
+    
+            var type  = query.match(/^q/) ? "q" : "l",
+                value = query.replace(/^(q|l)=/, ""),
+                temp  = type === "q" ? value.split(",") : value.split("+");
+    
+            if ( type === "l" ) {
+                args.push("lang:"+temp[0]);
+                continue;
+            }
+
+            for ( var j = 0; j < temp.length; j++ ) {
+                var arg = decodeURIComponent(temp[j]);
+
+                if ( arg.match(/^language:/) )
+                    args.push("lang:"+arg.replace(/^language:/, "").split(",")[0]);
+                else if ( arg.match(/^path:/) )
+                    args.push("path:"+arg.replace(/^path:/, "")+"*")
+                else
+                    args.push(arg);
+            }
+        }
+
+        return args; 
+    }
+
+    function getSearchPage() {
+        var queries = window.location.search.split("&"),
+            page    = 1;
+
+        for ( var i = 0; i < queries.length; i++ ) {
+            var query = queries[i].replace(/^\?/,"");
+
+            if ( ! query.match(/^p=/) )
+                continue;
+
+            page = parseInt(query.split("=").pop());
+        }
+
+        return page;
     }
 } 
 
@@ -442,7 +973,7 @@ function renderGitLabPage(rule, page) {
             rule.host.type,
             page.owner,
             page.repo,
-            function(numIndexedBranches, numIndexedRepos, error) {
+            function(numIndexedBranches, numIndexedRepos, token, error) {
                 stopAnimation = true;
 
                 if ( error !== undefined ) {
@@ -503,14 +1034,16 @@ function renderGitLabPage(rule, page) {
                 h3 = 
                     htmlUtil.createHeader3({
                         append: [ 
-                            htmlUtil.createTextNode("Loading GitSense Insight "),
+                            htmlUtil.createTextNode("Loading GitSense "),
                             dots
                         ]
                     }),
 
+                msg = getSecurityMessage(htmlUtil, rule),
+
                 loadBody = 
                     htmlUtil.createDiv({
-                        append: [ h3 ],
+                        append: [ h3, msg ],
                         style: {
                             color: "#333",
                             padding: "30px",
@@ -654,6 +1187,10 @@ function renderGitLabPage(rule, page) {
         }
 
         function updateBlameCommits() {
+            // We are disabling this for now
+            if ( true ) 
+                return;
+
             var stop = page.blame.commitElems.length,
                 halt = false;
 
@@ -1063,8 +1600,8 @@ function createOverlayWindow(href, targetOrigin, max) {
             overlayWindow.style.width = (parseInt(overlayWindow.style.width)+diff)+"px";
             overlayWindow.style.left  = e.clientX+"px";
             resize.style.left = e.clientX+"px";
-            iframe.contentWindow.postMessage("resize", targetOrigin);
             peekWidth = e.clientX;
+            iframe.contentWindow.postMessage("resize", targetOrigin);
         }
     }
 
@@ -1160,4 +1697,35 @@ function getHostLabel() {
         return "GitLab CE/EE";
 
     return null;
+}
+
+function getSecurityMessage(htmlUtil, rule) {
+    var url = rule.gitsense.baseUrl+"/insight/"+rule.host.type,
+
+        baseUrl = new URL(url).origin,
+
+        msg =
+            htmlUtil.createDiv({
+                html: 
+                    "<p>"+
+                    "If GitSense does not load for quite some time, "+
+                    "you may need to add the GitServer server "+
+                    "that is hosted at "+
+                    "<a target=_blank href="+url+">"+baseUrl+"</a>, to your "+
+                    "browser's security excption list.&nbsp; "+
+                    "To confirm if this is the case, please "+
+                    "click <a target=_blank href="+url+"/insight>here</a>."+
+                    "<p>"+
+                    "Once <a target=_blank href="+url+">"+baseUrl+"</a> has been added to "+
+                    "your browser's security exception list, you can reload this "+
+                    "page to continue.",
+                style: {
+                    marginTop: "10px",
+                    width: "600px",
+                    lineHeight: 1.5,
+                    fontSize: "15px"
+                }
+            });
+
+    return msg;
 }

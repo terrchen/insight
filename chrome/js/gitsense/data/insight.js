@@ -86,7 +86,7 @@ sdes.gitsense.data.insight = function(rule, token) {
             url: baseUrl+"/"+host+"/repos/"+owner+"/"+repo+"/stat",
             success: function(result) {
                 var temp = result.split(":");
-                callback(parseInt(temp[1]), parseInt(temp[2]));
+                callback(parseInt(temp[0]), parseInt(temp[1]), temp[2]);
             },
             error: function(e) {
                 if ( e.responseText.match(/Sorry/) )
