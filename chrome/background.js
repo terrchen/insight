@@ -11,6 +11,7 @@ var requiredGitSenseJSFiles = [
         "js/utils/variable.js",
         "js/github/data/repo.js",
         "js/github/data/user.js",
+        "js/github/ui/tabs.js",
         "js/github/utils/page.js",
         "js/gitlab/data/user.js",
         "js/gitlab/data/repo.js",

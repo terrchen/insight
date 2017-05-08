@@ -9,6 +9,11 @@ sdes.github.utils.page = function(rule) {
         if ( names[names.length - 1] === "" )
             names.pop();
 
+        if ( names.length === 1 && names[0] === "login" ) {
+            callback(null);
+            return;
+        }
+
         if ( names.length !== 1 && names[0] !== "orgs" ) {
             if ( names.length > 1 )
                 parseRepo(names, callback);
@@ -19,21 +24,6 @@ sdes.github.utils.page = function(rule) {
         }
 
         parseOrg(names.length === 1 ? names[0] : names[1], callback);
-
-        //new sdes.github.data.user(rule).get(
-        //    names.length === 1 ? names[0] : names[1],
-        //    function(user, error) {
-        //        if ( error !== undefined ) {
-        //            console.dir(error);
-        //            return;
-        //        }
-
-        //        if ( user.type === "Organization" )
-        //            parseOrg(user, callback);
-        //        else
-        //            callback(null);
-        //    }
-        //);
     }
 
     function parseOrg(name, callback) {
@@ -92,6 +82,7 @@ sdes.github.utils.page = function(rule) {
             repo      = names.shift(),
             home      = names.length === 0 ? true : false,
             search    = names.length !== 0 && names[0] === "search" ? true : false,
+            pull      = names.length !== 0 && names[0] === "pull" ? true : false,
             show      = window.location.search.match(/gitsense=insight/) ? true : false,
             stopAt    = new Date().getTime() + 1000,
             trackerId = "gitsense-content-tracker",
@@ -99,22 +90,21 @@ sdes.github.utils.page = function(rule) {
             container = document.getElementById(trackerId),
             iframe    = document.getElementById(iframeId);
 
-        if ( lastGitSenseShow && show )
+        if ( ! search && lastGitSenseShow && show )
             return;
 
-        if ( show && iframe !== null )
-            findContainers();
-        else if ( container !== null )
+        if ( container !== null ) {
+            stopAt += 2000;
             waitForNewContainers();
-        else
-            findContainers();
+            return;
+        }
 
+        findContainers();
         lastGitSenseShow = show; 
 
         function waitForNewContainers() {
-            if ( new Date().getTime() > stopAt )  {
-                stopAt = new Date().getTime() + 2000;
-                findContainers();
+            if ( new Date().getTime() > stopAt ) {
+                console.error("Giving up in waiting for new containers");
                 return;
             }
 
@@ -150,12 +140,15 @@ sdes.github.utils.page = function(rule) {
             for ( var i = 0; i < containers.length; i++ ) {
                 var container = containers[i];
 
-                if ( container.className === "container" ) {
+                if ( container.className === "container" && ! search ) {
                     if ( container.childNodes === undefined || container.childNodes[1] === undefined )
                         continue;
 
                     tabs = container.childNodes[1];
-                } else if ( container.className.match(/experiment-repo-nav/) ) {
+                } else if ( 
+                    (container.className === "container" && search) ||
+                    (container.className.match(/experiment-repo-nav/) && ! search)
+                ) {
                     content    = container;
                     content.id = trackerId;
 
@@ -164,7 +157,13 @@ sdes.github.utils.page = function(rule) {
                 }
             }
 
-            if ( tabs === null || content === null ) {
+            var prtabs = pull ? document.getElementsByClassName("tabnav-pr") : null;
+
+            if ( 
+                (tabs === null && ! search) || 
+                content === null ||
+                (pull && (prtabs === null || prtabs.length === 0 ))
+            ) {
                 setTimeout(findContainers, 50);
                 return;
             }
@@ -201,11 +200,82 @@ sdes.github.utils.page = function(rule) {
                 home: home,
                 show: show,
                 tabs: tabs,
-                search: search,
+                search: search ? getSearch() : null,
                 content: content,
                 fileNav: fileNav,
-                branch: branch
+                branch: branch,
+                pull: pull ? getPull(prtabs[0]) : null
             });
+        }
+
+        function getSearch() {
+            var navs         = document.getElementsByClassName("underline-nav")[0],
+                temp         = window.location.search.split("&"),
+                selectedType = null,
+                typeToNav    = {};
+
+            for ( var i = 0; temp.length; i++ ) {
+                var query = temp[i].split("="),
+                    key   = query[0].replace(/\?/,"");
+
+                if ( key !== "type" )
+                    continue;
+
+                if ( query.length === 1 || query[1] === "" )
+                    selectedType = "code";
+                else
+                    selectedType = query[1].toLowerCase();
+
+                break;
+            }
+
+            if ( selectedType === null )
+                return null;
+
+            for ( var i = 0; i < navs.children.length; i++ ) {
+                var nav  = navs.children[i],
+                    text = nav.innerText.toLowerCase(),
+                    type = null;
+
+                if ( text.match(/^\s*code/) )
+                    type = "code";
+                else if ( text.match(/^\s*commits/) )
+                    type = "commits";
+                else if ( text.match(/^\s*issues/) )
+                    type = "issues";
+                else if ( text.match(/^\s*gscode/) )
+                    type = "gscode";
+                else if ( text.match(/^\s*gscommits/) )
+                    type = "gscommits";
+                else if ( text.match(/^\s*gsdiffs/) )
+                    type = "gsdiffs";
+
+                nav.selected = nav.className.match(/selected/) ? true : false;
+
+                typeToNav[type] = nav;
+            }
+
+            return { selectedType: selectedType, typeToNav: typeToNav, navs: navs };
+        }
+
+        function getPull(prtabs) {
+            var number = parseInt(names[1]),
+                tabs   = null;
+
+            for ( var i = 0; i < prtabs.children.length; i++ ) {
+                var elem = prtabs.children[i];
+
+                if ( ! elem.className.match("tabnav-tabs") )
+                    continue;
+                    
+                tabs = elem;
+                break;
+            }
+
+            if ( tabs === null )
+                return null;
+
+            return { tabs: tabs, number: number };
         }
     }
 }

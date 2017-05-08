@@ -12,11 +12,32 @@ function load() {
         saveErrorBody = document.getElementById("save-error"),
         newRuleButton = document.getElementById("new-rule-button"),
         restoreLink   = document.getElementById("restore"),
-        hostTypes     = ["", "github", "github-enterprise", "gitlab"],
         xFrameOptions = ["DENY", "SAMEORIGIN"],
         htmlUtil      = new sdes.utils.html();
 
+    var hostTypes = [
+        { id: "", label: ""}, 
+        { id: "github", label: "github.com", api: "https://api.github.com" },
+        { id: "gitlab", label: "gitlab.com", api: "https://gitlab.com/api/v3" },
+        { id: "github-ent", label: "Github Enterprise", api: "BASE_URL/api/v3" },
+        { id: "gitlab-le", label: "GitLab CE/EE", api: "BASE_URL/api/v3" }
+    ];
+
+    var hostToInfo = mapHostToInfo();
+
     restoreLink.onclick = restoreDefault;
+
+    function mapHostToInfo() {
+        var hostToInfo = {};
+
+        for ( var i = 0; i < hostTypes.length; i++ ) {
+            var info = hostTypes[i];
+
+            hostToInfo[info.id] = info;
+        }
+
+        return hostToInfo;
+    }
 
     function update(localConfig) {
         var idToInput    = {},
@@ -52,9 +73,9 @@ function load() {
                     html =
                         "<div class=row>"+
                             "<input id="+id+"-matches type=text "+
-                                "placeholder='URL match pattern' "+
+                                "placeholder='URL pattern' "+
                                 "value='"+rule.matches+"' "+
-                                "style='width:730px;'>"+
+                                "style='width:480px;'>"+
                             "<span class='options'>"+
                                 "<span id="+id+"-option-down "+
                                     "class='octicon octicon-arrow-down option' "+
@@ -79,25 +100,25 @@ function load() {
                             getGitSenseSettings()+
                         "</div>";
 
-            var div = 
-                htmlUtil.createDiv({
-                    id: id,
-                    html: html,
-                    cls: "rule"
-                });
+                var div = 
+                    htmlUtil.createDiv({
+                        id: id,
+                        html: html,
+                        cls: "rule"
+                    });
 
                 renderToBody.appendChild(div);
 
-            renderToBody.style.borderBottom = "1px solid #666";
+                renderToBody.style.borderBottom = "1px solid #666";
 
                 function getHostTypes() {
                     var html = "<select id="+id+"-host-type>";
 
                     for ( var i = 0; i < hostTypes.length; i++ ) {
                         var type     = hostTypes[i],
-                            selected = type === rule.host.type ? "selected" : "";
+                            selected = type.id === rule.host.type ? "selected" : "";
 
-                        html += "<option "+selected+">"+type+"</option>";
+                        html += "<option value=\""+type.id+"\" "+selected+">"+type.label+"</option>";
                     }
 
                     html += "</select>";
@@ -106,7 +127,7 @@ function load() {
                 }
 
                 function getXFrameOptions() {
-                    var html = "<select id="+id+"-host-xFrameOptions>";
+                    var html = "<select id="+id+"-host-xFrameOptions style='width:112px'>";
 
                     for ( var i = 0; i < xFrameOptions.length; i++ ) {
                         var option   = xFrameOptions[i],
@@ -121,27 +142,29 @@ function load() {
                 }
 
                 function getHostSettings() {
+                    var baseUrl = rule.host.baseUrl;
+
                     var html =
                         "<div class='block-header'>"+
                             "<span id="+id+"-host-title "+
                                 "style='font-weight:bold;'>"+
-                                "GitHub, GitHub Enterprise, and GitLab"+
+                                "github.com, gitlab.com, GitHub Enterprise, and GitLab CE/EE"+
                             "</span>"+
                         "</div>"+
                         "<div class='block-body'>"+
                             "<table>"+
                                 "<tr>"+
                                     "<td class=field-cell>Type</td>"+
-                                    "<td class=field-cell>API</td>"+
+                                    "<td class=field-cell>Base URL</td>"+
                                     "<td class=field-cell>X-Frame-Options</td>"+
-                                    "<td class=field-cell>Access token</td>"+
+                                    "<td class=field-cell style='display:none;'>Access token</td>"+
                                 "</tr>"+
                                 "<tr>"+
                                     "<td class=field-cell>"+getHostTypes()+"</td>"+
                                     "<td class=field-cell>"+
                                         "<input type=text "+
-                                            "id="+id+"-host-api "+
-                                            "value='"+rule.host.api+"' "+
+                                            "id="+id+"-host-baseUrl "+
+                                            "value='"+baseUrl+"' "+
                                             "style='width:270px'>"+
                                     "</td>"+
                                     "<td class=field-cell>"+getXFrameOptions()+"</td>"+
@@ -150,7 +173,7 @@ function load() {
                                             "id="+id+"-host-secret "+
                                             "value='"+rule.host.secret+"' "+
                                             "placeholder=Optional "+
-                                            "style='width:210px;'>"+
+                                            "style='width:213px;display:none;'>"+
                                     "</td>"+
                                 "</tr>"+
                             "</table>"+
@@ -169,21 +192,21 @@ function load() {
                             "<table>"+
                                 "<tr>"+
                                     "<td class=field-cell>Base URL</td>"+
-                                    "<td class=field-cell>Access token</td>"+
+                                    "<td class=field-cell style='display:none;'>Access token</td>"+
                                 "</tr>"+
                                 "<tr>"+
                                     "<td class=field-cell>"+
                                         "<input type=text "+
                                             "id="+id+"-gitsense-baseUrl "+
                                             "value='"+rule.gitsense.baseUrl+"' "+
-                                            "style='width:415px'>"+
+                                            "style='width:550px'>"+
                                     "</td>"+
                                     "<td class=field-cell style='padding-right:0px;'>"+
                                         "<input type=password "+
                                             "id="+id+"-gitsense-secret "+
                                             "value='"+rule.gitsense.secret+"' "+
                                             "placeholder=Optional "+
-                                            "style='width:350px;'>"+
+                                            "style='width:350px;display:none;'>"+
                                     "</td>"+
                                 "</tr>"+
                             "</table>"+
@@ -245,6 +268,12 @@ function load() {
                                 continue;
                             case "host":
                                 for ( var hostKey in rule[key] ) {
+
+                                    // This values gets dynamically defined when the rules
+                                    // are saved
+                                    if ( hostKey === "api" )
+                                        continue;
+
                                     var hostId = id+"-host-"+hostKey,
                                         input  = document.getElementById(hostId);
 
@@ -402,6 +431,9 @@ function load() {
                                 return;
                             case "host":
                                 for ( var hostKey in rule[key] ) {
+                                    if ( hostKey === "api" )
+                                        continue;
+
                                     var hostId = id+"-host-"+hostKey,
                                         input  = idToInput[hostId];
 
@@ -464,6 +496,16 @@ function load() {
 
                 if ( newRules === null )
                     return;
+
+                for ( var i = 0; i < newRules.length; i++ ) {
+                    var rule = newRules[i],
+                        host = rule.host;
+
+                    rule.gitsense.baseUrl = new URL(rule.gitsense.baseUrl).origin;
+                    
+                    host.baseUrl = new URL(host.baseUrl).origin;
+                    host.api     = hostToInfo[host.type].api.replace(/BASE_URL/, host.baseUrl);
+                }
 
                 var newConfig = { routingRules: newRules };
 
@@ -579,6 +621,9 @@ function load() {
                                     newRule[key] = {};
 
                                     for ( var hostKey in rule[key] ) {
+                                        if ( hostKey === "api" )
+                                            continue;
+
                                         var hostId = id+"-host-"+hostKey,
                                             input  = idToInput[hostId],
                                             value  = clean(input.value);
@@ -587,7 +632,7 @@ function load() {
 
                                         if ( 
                                             value === "" &&
-                                            (hostKey === "type" || hostKey === "api")
+                                            (hostKey === "type" || hostKey === "baseUrl")
                                         ) {
                                             showError(input);
 
@@ -599,11 +644,11 @@ function load() {
                                             continue;
                                         }
 
-                                        if ( hostKey === "api" && ! value.match(/^https*:\/\//) ) {
+                                        if ( hostKey === "baseUrl" && ! value.match(/^https*:\/\//) ) {
                                             showError(input);
 
                                             errors.push(
-                                                "Invalid "+key+" API URL in rule "+ruleNum
+                                                "Invalid "+key+" base URL in rule "+ruleNum
                                             );
 
                                             continue;
@@ -697,7 +742,7 @@ function load() {
 
                     for ( var i = 0; i < rules.length; i++ ) {
                         var rule = rules[i],
-                            urls = [ rule.matches, rule.host.api, rule.gitsense.baseUrl ];
+                            urls = [ rule.matches, rule.host.baseUrl, rule.gitsense.baseUrl ];
 
                         for ( var j = 0; j < urls.length; j++ ) {
                             var a = document.createElement("a");
@@ -720,6 +765,7 @@ function load() {
                     host: {
                         type: "",
                         api: "",
+                        baseUrl: "",
                         secret: ""
                     }
                 },

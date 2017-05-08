@@ -4,11 +4,10 @@ sdes.gitsense.data.auth = function(rule) {
     var varUtil    = new sdes.utils.variable(),
         urlPrefix  = rule.gitsense.baseUrl+"/insight";
 
-    this.getTempToken = function(owner, repo, callback) {
+    this.getTempToken = function(host, owner, repo, callback) {
         $.ajax({
-            url: urlPrefix+"/admin/auth/temp",
+            url: urlPrefix+"/auth/"+host+"/temp",
             data: {
-                rule: JSON.stringify(rule),
                 owner: owner,
                 repo: repo   
             },

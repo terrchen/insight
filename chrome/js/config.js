@@ -8,9 +8,10 @@ sdes.config = {
         {
             "matches": "https://github.com/*",
             "host": {
-                "type": "github",
                 "api": "https://api.github.com",
+                "baseUrl": "https://github.com",
                 "secret": "",
+                "type": "github",
                 "xFrameOptions": "DENY"
             },
             "gitsense": {
@@ -21,9 +22,10 @@ sdes.config = {
         {
             "matches": "https://gitlab.com/*",
             "host": {
-                "type": "gitlab",
                 "api": "https://gitlab.com/api/v3",
+                "baseUrl": "https://gitlab.com",
                 "secret": "",
+                "type": "gitlab",
                 "xFrameOptions": "DENY"
             },
             "gitsense": {

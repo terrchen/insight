@@ -1,8 +1,8 @@
 {
-    "name": "GitSense Insight",
-    "version": "1.1",
+    "name": "GitSense",
+    "version": "1.2",
     "manifest_version": 2,
-    "description": "Makes searching in GitHub and GitLab better",
+    "description": "Find answers faster. Get more done.",
     "homepage_url": "https://gitsense.com",
     "options_page": "options.html",
     "icons": {
