@@ -2,7 +2,7 @@
     "name": "GitSense",
     "version": "1.2",
     "manifest_version": 2,
-    "description": "Find answers faster. Get more done.",
+    "description": "Find answers faster in GitHub and GitLab",
     "homepage_url": "https://gitsense.com",
     "options_page": "options.html",
     "icons": {

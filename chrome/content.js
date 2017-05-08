@@ -283,7 +283,7 @@ function renderGitHubPage(rule, page) {
                                     "t="+page.search.selectedType+"&"+
                                     "b="+getDefaultBranchId(githubRepo)+"&"+
                                     "q="+getSearchArgs().join("+")+
-                                    ( page.search.selectedType === "gscode" ? "+cs:true" : "")
+                                    (page.search.selectedType === "gscode" ? "+cs:true" : "")
                             ),
                         targetOrigin: rule.gitsense.baseUrl,
                         hash: window.location.hash,
@@ -575,110 +575,6 @@ function renderGitHubPage(rule, page) {
                 nav.sync    = sync;
 
                 return nav;
-            }
-
-            function addCommitsSearchMsg() {
-                if ( new Date().getTime() > stopAt )
-                    return;
-
-                var searchResults = document.getElementById("commit_search_results"),
-                    blankElems    = document.getElementsByClassName("blankslate"),
-                    sortElems     = document.getElementsByClassName("sort-bar"),
-                    sortBar       = null,
-                    blankSlate    = null,
-                    tabsBody      = null;
-
-                if ( sortElems !== null && sortElems.length !== 0  )
-                    sortBar = sortElems[0];
-
-                if ( blankElems !== null && blankElems.length !== 0 )
-                    blankSlate = blankElems[0];
-
-                if ( searchResults === null && sortBar === null && blankSlate === null ) {
-                    setTimeout(addCommitsSearchMsg, 50);
-                    return;
-                }
-
-                function renderTabs(select) { 
-                    if ( tabsBody != null )
-                        tabsBody.parentNode.removeChild(tabsBody);
-
-                    var page = getSearchPage(),
-                        shas = getPageShas();
-
-                    tabsBody = htmlUtil.createDiv({style: { marginBottom: "25px" }});
-
-                    searchResults.parentNode.insertBefore(tabsBody, searchResults);
-
-                    var tabs = [ 
-                        { id: "commits", label: "Commits"},
-                        { id: "changes", label: "Changes" }
-                    ];
-
-                    var tabBuilder = new sdes.github.ui.tabs();
-
-                    for ( var i = 0; i < tabs.length; i++ ) {
-                        var tab = tabs[i];
-
-                        tabBuilder.add({
-                            id: tab.id,
-                            html: tab.label,
-                            selected: tab.id === select ? true : false,
-                            onclick: clicked
-                        });
-                    }
-
-                    $(tabsBody).html("");
-    
-                    tabsBody.appendChild(tabBuilder.build());
-
-                    function clicked(id, tab) {
-                        selectedTab = id;
-                        
-                        switch(id) {
-                            case "commits":
-                                $(matchingCommitsBody).show();
-                                break;
-                            default:
-                                throw("GitSense: Unrecognized tab type '"+id+"'");
-                        }
-
-                        renderTabs();
-                    }
-
-                    function getPageShas() {
-                        var elems = document.getElementsByClassName("sha"),
-                            shas  = [];
-
-                        for ( var i = 0; i < elems.length; i++ )
-                            shas.push(elems[i].href.split("/").pop());
-
-                        return shas;
-                    }
-                }
-            }
-
-            function addCodeSearchMsg() {
-                if ( new Date().getTime() > stopAt )
-                    return;
-
-                var searchResults = document.getElementById("code_search_results"),
-                    searchHead    = document.getElementsByClassName("codesearch-head")[0],
-                    blankElems    = document.getElementsByClassName("blankslate"),
-                    sortElems     = document.getElementsByClassName("sort-bar"),
-                    sortBar       = null,
-                    blankSlate    = null;
-
-                if ( sortElems !== null && sortElems.length !== 0  )
-                    sortBar = sortElems[0];
-
-                if ( blankElems !== null && blankElems.length !== 0 )
-                    blankSlate = blankElems[0];
-
-                if ( searchResults === null && sortBar === null && blankSlate === null ) {
-                    setTimeout(addCodeSearchMsg, 50);
-                    return;
-                }
             }
 
             function animateSync() {

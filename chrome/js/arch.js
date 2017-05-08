@@ -19,7 +19,6 @@ var sdes = {
     },
     github: {
         data: {},
-        ui: {},
         utils: {}
     },
     gitlab: {
