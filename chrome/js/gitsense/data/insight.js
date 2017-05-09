@@ -80,4 +80,20 @@ sdes.gitsense.data.insight = function(rule, token) {
             }
         });
     }
+
+    this.stat = function(host, owner, repo, callback) {
+        $.ajax({
+            url: baseUrl+"/"+host+"/repos/"+owner+"/"+repo+"/stat",
+            success: function(result) {
+                var temp = result.split(":");
+                callback(parseInt(temp[0]), parseInt(temp[1]), temp[2]);
+            },
+            error: function(e) {
+                if ( e.responseText.match(/Sorry/) )
+                    callback(false);
+                else
+                    callback(null, null, null, e);
+            }
+        });
+    }
 } 

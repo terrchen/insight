@@ -106,6 +106,7 @@ sdes.gitlab.utils.page = function(rule) {
             repo      = names.shift(),
             home      = names.length === 0 ? true : false,
             search    = names.length !== 0 && names[0] === "search" ? true : false,
+            blame     = names.length !== 0 && names[0] === "blame" ? true : false,
             mr        = names.length !== 0 && names[0] === "merge_requests" ? true : false,
             mrNum     = mr && names.length > 1 ? names[1] : 0,
             mrPage    = mrNum !== 0 && names.length > 2 ? names[2] : null,
@@ -153,13 +154,17 @@ sdes.gitlab.utils.page = function(rule) {
             }
 
             var contentElems = document.getElementsByClassName("content"),
-                navLinks     = document.getElementsByClassName("nav-links");
+                commitElems  = blame ? document.getElementsByClassName("pull-right") : [],
+                navLinks     = document.getElementsByClassName("nav-links"),
+                repoRef      = document.getElementById("repository_ref"),
+                projectId    = document.getElementById("project_id");
 
             if ( 
                 contentElems === null || 
                 contentElems.length === 0 ||
                 navLinks === null ||
-                navLinks.length === 0 
+                navLinks.length === 0 ||
+                commitElems === null
             ) {
                 setTimeout(findElems, 50);
                 return;
@@ -172,8 +177,27 @@ sdes.gitlab.utils.page = function(rule) {
                 show: show,
                 navLinks: navLinks,
                 content: contentElems[0],
-                mergeRequest: mr ? { number: mrNum, page: mrPage } : null 
+                mergeRequest: mr ? { number: mrNum, page: mrPage } : null,
+                blame: blame ? getBlameInfo() : null
             });
+
+            function getBlameInfo() {
+                names.shift();
+
+                var branch = "";
+
+                while (names.length > 0) {
+                    branch = branch === "" ? names.shift() : branch+"/"+names.shift();
+
+                    if ( branch === repoRef.value )
+                        break; 
+                }
+
+                if ( branch !== repoRef.value )
+                    return null;
+
+                return { commitElems: commitElems, branch: branch, path: names.join("/") };
+            }
         }
     }
 
