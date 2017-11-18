@@ -1,10 +1,13 @@
 {
     "name": "GitSense",
-    "version": "1.2",
+    "version": "1.4",
     "manifest_version": 2,
-    "description": "Find answers faster in GitHub and GitLab",
+    "description": "GitSense for GitHub",
     "homepage_url": "https://gitsense.com",
-    "options_page": "options.html",
+    "options_ui": {
+        "page" : "options.html",
+        "chrome_style": false
+    },
     "icons": {
         "128": "images/icon-128.png"
     },

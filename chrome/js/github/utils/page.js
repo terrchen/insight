@@ -90,9 +90,6 @@ sdes.github.utils.page = function(rule) {
             container = document.getElementById(trackerId),
             iframe    = document.getElementById(iframeId);
 
-        if ( ! search && lastGitSenseShow && show )
-            return;
-
         if ( container !== null ) {
             stopAt += 2000;
             waitForNewContainers();
@@ -127,7 +124,7 @@ sdes.github.utils.page = function(rule) {
 
             var containers = document.getElementsByClassName("container");
 
-            if ( containers === null || containers.length < 4 ) {
+            if ( containers === null || containers.length < 3 ) {
                 setTimeout(findContainers, 50);
                 return;
             }
@@ -140,11 +137,11 @@ sdes.github.utils.page = function(rule) {
             for ( var i = 0; i < containers.length; i++ ) {
                 var container = containers[i];
 
-                if ( container.className === "container" && ! search ) {
+                if ( container.className.match(/js-repo-nav/) && ! search ) {
                     if ( container.childNodes === undefined || container.childNodes[1] === undefined )
                         continue;
 
-                    tabs = container.childNodes[1];
+                    tabs = container;
                 } else if ( 
                     (container.className === "container" && search) ||
                     (container.className.match(/experiment-repo-nav/) && ! search)
@@ -160,7 +157,7 @@ sdes.github.utils.page = function(rule) {
             var prtabs = pull ? document.getElementsByClassName("tabnav-pr") : null;
 
             if ( 
-                (tabs === null && ! search) || 
+                (tabs === null && !search) || 
                 content === null ||
                 (pull && (prtabs === null || prtabs.length === 0 ))
             ) {

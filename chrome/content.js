@@ -172,11 +172,11 @@ function renderGitHubPage(rule, page) {
             renderTo        = null,
             githubRepo      = null,
             githubRepoError = null,
-            insightLink     = null,
+            gitsenseTab     = null,
             stopAnimation   = false;
 
         if ( page.tabs !== undefined && page.search === null )
-            insightLink = addInsightLink();
+            gitsenseTab = addGitSenseTab();
 
         if ( page.show ) 
             renderTo = createGitSenseBody(page.search !== null ? 980 : null);
@@ -209,39 +209,35 @@ function renderGitHubPage(rule, page) {
                 stopAnimation = true;
 
                 if ( error !== undefined ) {
-                    insightLink.bulb.style.color = "red";
+                    gitsenseTab.bulb.style.color = "red";
                     throw error;
                 }
 
-                if ( page.search === null ) {
-                    if ( numIndexedBranches === 0 )
-                        insightLink.bulb.style.color = "#aaa";
-
-                    $(insightLink.bulb).show();
-                }
+                if ( page.search === null )
+                    gitsenseTab.counter.innerHTML = numIndexedBranches;
 
                 if ( page.pull !== null && numIndexedBranches !== 0 )
                     renderPull();
 
-                if ( page.search !== null ) { 
-                    var navs = page.search.typeToNav;
+                //if ( page.search !== null ) { 
+                //    var navs = page.search.typeToNav;
 
-                    if ( numIndexedBranches === 0 ) {
-                        $(navs.gscommits.counter).text("N/A");
-                        $(navs.gscode.counter).text("N/A");
-                        $(navs.gsdiffs.counter).text("N/A");
-                    } else {
-                        updateSearch(token, new Date().getTime() + 2000);
-                    }
+                //    if ( numIndexedBranches === 0 ) {
+                //        $(navs.gscommits.counter).text("N/A");
+                //        $(navs.gscode.counter).text("N/A");
+                //        $(navs.gsdiffs.counter).text("N/A");
+                //    } else {
+                //        updateSearch(token, new Date().getTime() + 2000);
+                //    }
 
-                    if ( 
-                        page.search.selectedType !== "gscode" && 
-                        page.search.selectedType !== "gscommits" && 
-                        page.search.selectedType !== "gsdiffs" 
-                    ) {
-                        return;
-                    }
-                }
+                //    if ( 
+                //        page.search.selectedType !== "gscode" && 
+                //        page.search.selectedType !== "gscommits" && 
+                //        page.search.selectedType !== "gsdiffs" 
+                //    ) {
+                //        return;
+                //    }
+                //}
 
                 if ( ! page.show )
                     return;
@@ -272,7 +268,7 @@ function renderGitHubPage(rule, page) {
                             rule.gitsense.baseUrl+"/"+
                             "insight/"+
                             hostId+"?"+
-                            "e=true&"+
+                            "ghe=true&"+
                             "r="+page.owner+"/"+page.repo+
                             (
                                 page.search === null ? 
@@ -320,6 +316,8 @@ function renderGitHubPage(rule, page) {
                     header     = containers[0],
                     tabBody    = page.tabs.parentNode,
                     infoBar    = pageHead.children[0];
+
+                page.tabs.style.width = "100%";
 
                 header.style.width        = "100%";
                 header.style.paddingLeft  = "20px";
@@ -388,6 +386,78 @@ function renderGitHubPage(rule, page) {
             }
         }
 
+        function addGitSenseTab() {
+            var needToAdd   = true,
+                insightsTab = null,
+                pullReqsTab = null,
+                projectsTab = null,
+                wikiTab     = null;
+
+            for ( var i = 0; i < page.tabs.children.length; i++ ) {
+                var tab = page.tabs.children[i];
+
+                if ( tab.className === "" ) 
+                    tab = tab.children[0];
+
+                if ( $(tab).html().match(/Insights/) )    
+                    insightsTab = tab;
+                else if ( $(tab).html().match(/Pull/) )    
+                    pullReqsTab = tab;
+                else if ( $(tab).html().match(/Wiki/) )    
+                    wikiTab = tab;
+                else if ( $(tab).html().match(/Projects/) )    
+                    projectsTab = tab;
+                else if ( $(tab).html().match(/GitSense/) )
+                    tab.parentNode.removeChild(tab);
+
+                if ( ! page.show )
+                    continue;
+
+                if ( tab.className.match(/ selected/) )
+                    tab.setAttribute("class", tab.className.replace(/ selected/, ""));
+            }
+
+            var label =
+                    htmlUtil.createSpan({
+                        html: "<span class='octicon octicon-light-bulb'></span> "+
+                              "GitSense",
+                    }),
+
+                counter = 
+                    htmlUtil.createSpan({
+                        cls: "Counter",
+                        html: "&nbsp; &nbsp",
+                        style: {
+                            marginLeft: "3px"
+                        }
+                    }),
+
+                gitsenseTab = htmlUtil.createLink({
+                    id: "gitsense-tab",
+                    cls: 
+                        "js-selected-navigation-item reponav-item"+
+                         (page.show ? " selected" : ""),
+                    href: "/"+page.owner+"/"+page.repo+"?gitsense=insight",
+                    append: [ label ],
+                    style: {
+                        cursor: "pointer"
+                    }
+                });
+
+            gitsenseTab.counter = counter;
+
+            if ( insightsTab !== null )
+                page.tabs.insertBefore(gitsenseTab, insightsTab.nextSibling);
+            else if ( wikiTab !== null )
+                page.tabs.insertBefore(gitsenseTab, wikiTab.nextSibling);
+            else if ( projectsTab !== null )
+                page.tabs.insertBefore(gitsenseTab, projectsTab.nextSibling);
+            else
+                page.tabs.appendChild(gitsenseTab);
+
+            return gitsenseTab;
+        }
+
         function addInsightLink() {
             var needToAdd = true;
 
@@ -441,9 +511,9 @@ function renderGitHubPage(rule, page) {
 
         function renderPull() {
             // For now, we'll just add the insight link
-            addInsightTab();
+            addGitSenseTab();
  
-            function addInsightTab() {
+            function addGitSenseTab() {
                 var needToAdd = true,
                     filesTab  = null,
                     tabs      = page.pull.tabs;
@@ -874,7 +944,7 @@ function renderGitLabPage(rule, page) {
                         rule.gitsense.baseUrl+"/"+
                         "insight/"+
                         hostId+"?"+
-                        "e=true&"+
+                        "gle=true&"+
                         "r="+page.owner+"/"+page.repo,
                     targetOrigin: rule.gitsense.baseUrl,
                     hash: window.location.hash,
@@ -1114,7 +1184,7 @@ function renderGitLabPage(rule, page) {
                         "#"+
                         "b="+branchId+"&"+
                         "q="+query+"&"+
-                        "dr=history&"+
+                        "drg=history&"+
                         "dp="+path+"&"+
                         "dc=false&"+
                         "dcl=&df=&dl=&dvm=";
@@ -1221,8 +1291,10 @@ function gotoPage(page) {
 function setHash(hash) {
     ignoreHash = hash;
 
-    if ( window.location.hash !== hash )
+    if ( window.location.hash !== hash ) {
         window.location.hash = hash;
+        gitsenseIframe.contentWindow.postMessage("hash:"+hash, "*");
+    }
 }
 
 function setHref(href) {
@@ -1322,45 +1394,31 @@ function createOverlayWindow(href, targetOrigin, max) {
     title.style.fontSize = "12px";
     title.style.color = "white";
 
-    var externalLink = document.createElement("a");
-    externalLink.setAttribute("class", "octicon octicon-link-external");
-    externalLink.setAttribute("title", "Open in current window");
-    externalLink.href = href;
-    externalLink.target = "_blank";
-    externalLink.style.fontWeight = "bold";
-    externalLink.style.display = "block";
-    externalLink.style.overflow = "hidden";
-    externalLink.style.textOverflow = "ellipsis";
-    externalLink.style.whiteSpace = "nowrap";
-    externalLink.style.color = "white";
+    var extLink = document.createElement("a");
 
-    var externalLinkCell = document.createElement("div");
-    externalLinkCell.style.display = "table-cell";
-    externalLinkCell.style.verticalAlign = "middle";
-    externalLinkCell.style.paddingRight = "15px";
-    externalLinkCell.style.paddingTop = "1px";
-    externalLinkCell.appendChild(externalLink);
+    extLink.innerHTML = 
+        "<span class='octicon octicon-browser' style='margin-right:6px;'></span>"+
+        "Open in a separate window";
 
-    var gotoLinkText = document.createTextNode("GitSense for "+getHostLabel());
-    var gotoLink = document.createElement("a");
-    gotoLink.setAttribute("title", "Open in new window");
-    gotoLink.href = href;
-    gotoLink.style.fontWeight = "bold";
-    gotoLink.style.display = "block";
-    gotoLink.style.width = "500px";
-    gotoLink.style.overflow = "hidden";
-    gotoLink.style.textOverflow = "ellipsis";
-    gotoLink.style.whiteSpace = "nowrap";
-    gotoLink.style.color = "white";
-    gotoLink.appendChild(gotoLinkText);
-
-    var gotoLinkCell = document.createElement("div");
-    gotoLinkCell.style.display = "table-cell";
-    gotoLinkCell.style.width = "100%";
-    gotoLinkCell.style.verticalAlign = "middle";
-    gotoLinkCell.style.paddingLeft = "15px";
-    gotoLinkCell.style.paddingTop = "1px";
-    gotoLinkCell.appendChild(gotoLink);
+    extLink.setAttribute("title", "Open "+href+" in a new window");
+    extLink.setAttribute("class", "sysfont");
+    extLink.target = "_blank";
+    extLink.href = href;
+    extLink.style.fontWeight = "bold";
+    extLink.style.display = "block";
+    extLink.style.width = "500px";
+    extLink.style.overflow = "hidden";
+    extLink.style.textOverflow = "ellipsis";
+    extLink.style.whiteSpace = "nowrap";
+    extLink.style.color = "white";
+    
+    var extLinkCell = document.createElement("div");
+    extLinkCell.style.display = "table-cell";
+    extLinkCell.style.width = "100%";
+    extLinkCell.style.verticalAlign = "middle";
+    extLinkCell.style.paddingLeft = "10px";
+    extLinkCell.style.paddingTop = "1px";
+    extLinkCell.appendChild(extLink);
 
     var close = document.createElement("span");
     close.setAttribute("class", "octicon octicon-x");
@@ -1385,8 +1443,7 @@ function createOverlayWindow(href, targetOrigin, max) {
     sizeCell.style.verticalAlign = "middle";
     sizeCell.appendChild(size);
 
-    title.appendChild(gotoLinkCell);
-    title.appendChild(externalLinkCell);
+    title.appendChild(extLinkCell);
     title.appendChild(sizeCell);
     title.appendChild(closeCell);
 
@@ -1505,27 +1562,17 @@ function renderNoRouteToHost(renderTo, error) {
 }
 
 function renderUnauthorized(type, renderTo, rule, page) {
-    var token = type.match("gitlab") ? "GitLab access token" : "GitHub personal token";
-
+    var hostLabel = type.match(/gitlab/) ? "GitLab" : "GitHub",
+        hostUrl   = rule.gitsense.baseUrl+"/insight/"+type;
+ 
     $(renderTo).html(
         "<div style='padding:30px;padding-top:10px;width:800px;line-height:1.5;'>"+
             "<h2>Unauthorized</h2>"+
             "<p style='font-size:18px;'>"+
                 "Sorry, we were unable to verify your identity on the GitSense server at "+
                 rule.gitsense.baseUrl+"&nbsp; "+
-                "Please add a GitSense access token and/or "+token+" to your "+
-                "browser's GitSense settings and try again.&nbsp; To access the GitSense settings "+
-                "page, copy and the paste the following URI:"+
+                "Please <a target=_blank href="+hostUrl+">sign in with "+hostLabel+"</a> and try again."+
             "</p>"+
-            "<pre style='margin-top:20px'>chrome-extension://"+chrome.runtime.id+"/options.html</pre>"+
-        (
-            type === "github"  ?
-                "" :
-                "<p style='font-size:18px;margin-top:20px;'>"+
-                    "Alternatively, if you have GitSense admin privileges, you can setup a common GitLab "+
-                    "access token on the GitSense server."+
-                "</p>"
-        )+
         "</div>"
     );
 }
@@ -1566,7 +1613,7 @@ function getSecurityMessage(htmlUtil, rule) {
                     "<a target=_blank href="+url+">"+baseUrl+"</a>, to your "+
                     "browser's security exception list.&nbsp; "+
                     "To confirm if this is the case, please "+
-                    "click <a target=_blank href="+url+"/insight>here</a>."+
+                    "click <a target=_blank href="+url+">here</a>."+
                     "<p>"+
                     "Once <a target=_blank href="+url+">"+baseUrl+"</a> has been added to "+
                     "your browser's security exception list, you can reload this "+
