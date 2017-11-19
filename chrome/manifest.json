@@ -2,7 +2,7 @@
     "name": "GitSense",
     "version": "1.4",
     "manifest_version": 2,
-    "description": "GitSense for GitHub",
+    "description": "Makes searching, analyzing and reviewing code in GitHub, GitLab and VSTS better",
     "homepage_url": "https://gitsense.com",
     "options_ui": {
         "page" : "options.html",

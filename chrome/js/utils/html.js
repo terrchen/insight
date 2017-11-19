@@ -307,6 +307,9 @@ sdes.utils.html = function() {
     
         if ( ! varUtil.isNoU(params.role) )
             elem.setAttribute("role", params.role);
+
+        if ( ! varUtil.isNoU(params.title) )
+            elem.setAttribute("title", params.title);
     
         if ( ! varUtil.isNoU(params.html) ) {
             if ( typeof(params.html) === "object" )

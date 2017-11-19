@@ -15,7 +15,8 @@ var sdes = {
     },
     events: {},
     gitsense: {
-        data: {}
+        data: {},
+        utils: {}
     },
     github: {
         data: {},

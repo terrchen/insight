@@ -272,7 +272,25 @@ sdes.github.utils.page = function(rule) {
             if ( tabs === null )
                 return null;
 
-            return { tabs: tabs, number: number };
+            var selected = "";
+
+            for ( var i = 0; i < tabs.children.length; i++ ) {
+                var tab = tabs.children[i];
+
+                if ( ! tab.className.match(/selected/) )
+                    continue;
+    
+                var text = tab.innerText.toLowerCase();
+
+                if ( text.match(/conversation/) )
+                    selected = "conversation";
+                else if ( text.match(/commits/) )
+                    selected = "commits";
+                else if ( text.match(/files/) )
+                    selected = "files";
+            }
+
+            return { tabs: tabs, selectedTab: selected, number: number };
         }
     }
 }

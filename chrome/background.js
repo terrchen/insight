@@ -18,6 +18,7 @@ var requiredGitSenseJSFiles = [
         "js/gitsense/data/auth.js",
         "js/gitsense/data/insight.js",
         "js/gitsense/data/repo.js",
+        "js/gitsense/utils/location.js",
         "content.js"
     ],
     requiredGitSenseCSSFiles = [

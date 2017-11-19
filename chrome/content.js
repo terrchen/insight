@@ -426,6 +426,7 @@ function renderGitHubPage(rule, page) {
                 counter = 
                     htmlUtil.createSpan({
                         cls: "Counter",
+                        title: "Number of indexed branches and/or pull requests",
                         html: "&nbsp; &nbsp",
                         style: {
                             marginLeft: "3px"
@@ -438,7 +439,7 @@ function renderGitHubPage(rule, page) {
                         "js-selected-navigation-item reponav-item"+
                          (page.show ? " selected" : ""),
                     href: "/"+page.owner+"/"+page.repo+"?gitsense=insight",
-                    append: [ label ],
+                    append: [ label, counter ],
                     style: {
                         cursor: "pointer"
                     }
@@ -509,11 +510,52 @@ function renderGitHubPage(rule, page) {
             return insightLink;
         }
 
-        function renderPull() {
+        function renderPull(pull) {
+            var host   = rule.host.type,
+                repo   = page.owner+"/"+page.repo,
+                number = page.pull.number,
+                branch = host+":"+repo+":gs_pr_"+number;
+
+            if ( pull === undefined ) {
+                new sdes.gitsense.data.insight(rule).searchPoms(
+                    host,
+                    [ repo ],
+                    null,
+                    ["pom:"+number],
+                    1,
+                    null,
+                    null,
+                    null,
+                    null,
+                    function(results, error) {
+                        if ( error !== undefined )
+                            throw error;
+
+                        if ( results.poms.length === 0 )
+                            return;
+
+                        renderPull(results.poms[0]);
+                    }
+                );
+
+                return;
+            }
+
+            // This is used by both add link and add action, so define it here
+            var locUtil = new sdes.gitsense.utils.location();
+
             // For now, we'll just add the insight link
-            addGitSenseTab();
- 
-            function addGitSenseTab() {
+            addGitSenseLink();
+
+            if ( page.pull.selectedTab !== "files" )
+                return;
+
+            var elems = document.getElementsByClassName("file-actions");
+
+            for ( var i = 0; i < elems.length; i++ )
+                addGitSenseAction(elems[i]);
+
+            function addGitSenseLink() {
                 var needToAdd = true,
                     filesTab  = null,
                     tabs      = page.pull.tabs;
@@ -529,25 +571,35 @@ function renderGitHubPage(rule, page) {
                 if ( filesTab === null )
                     return;
 
+                var hash = {
+                    branches: [ branch ],
+                    query: {
+                        oargs: ["diff:"+pull.fromSha+"..."+pull.toSha]
+                    },
+                    tab: "diffcommits"
+                };
+
                 var label =
                         htmlUtil.createSpan({
-                            html: "<span class='octicon octicon-link-external' "+
-                                  "style='margin-right:3px;'></span> "+
-                                  "Insight ",
+                            html: 
+                                "<span class='octicon octicon-link' "+
+                                    "style=''></span> "+
+                                    "GitSense",
                         }),
-                    insightTab = htmlUtil.createLink({
-                        id: "gitsense-pr-tab",
-                        cls: "tabnav-tab",
-                        target: "_blank",
-                        href: 
-                            rule.gitsense.baseUrl+"/insight/"+
-                            rule.host.type+"?r="+page.owner+"/"+page.repo+
-                            "#p=ipom&q="+page.pull.number,
-                        append: [ label ],
-                        style: {
-                            cursor: "pointer"
-                        }
-                    });
+
+                    insightTab = 
+                        htmlUtil.createLink({
+                            id: "gitsense-pr-tab",
+                            cls: "tabnav-tab",
+                            target: "_blank",
+                            href: 
+                                "/"+page.owner+"/"+page.repo+"?gitsense=insight"+
+                                "#"+locUtil.getHashString(hash),
+                            append: [ label ],
+                            style: {
+                                cursor: "pointer"
+                            }
+                        });
 
                 if ( filesTab !== null )
                     tabs.insertBefore(insightTab, filesTab.nextSibling);
@@ -555,6 +607,64 @@ function renderGitHubPage(rule, page) {
                     tabs.appendChild(insightTab);
 
                 return insightTab;
+            }
+
+            function addGitSenseAction(actions) {   
+                var desktop = null;
+
+                for ( var i = 0; i < actions.children.length; i++ )  {
+                    var action = actions.children[i];
+
+                    if ( action.nodeName !== "A" )
+                        continue;
+
+                    if ( ! action.getAttribute("href").match(/^github-/) )
+                        continue;
+
+                    desktop = action;
+                    break;
+                }
+
+                var temp = decodeURIComponent(desktop.getAttribute("href")).split("filepath="),
+                    file = temp.pop().replace(/&.+/, "");
+
+                var gitsense =
+                        htmlUtil.createLink({
+                            title: "View changes in a GitSense window",
+                            cls: "btn-octicon octicon octicon-light-bulb",
+                            style: {
+                                cursor: "pointer",
+                                textDecoration: "none",
+                                width: "16px"
+                            } 
+                        });
+
+                actions.insertBefore(gitsense, desktop.nextSibling);
+
+                gitsense.onclick = function() {
+                    var hash = {
+                        branches: [ branch ],
+                        query: {
+                            oargs: ["diff:"+pull.fromSha+"..."+pull.toSha]
+                        },
+                        diffs: {
+                            path: file,
+                            diff: true,
+                        }
+                    };
+
+                    var hashString = locUtil.getHashString(hash);
+
+                    var href = 
+                            rule.gitsense.baseUrl+"/"+
+                            "insight/"+
+                            rule.host.type+
+                            "?ghe=true&"+
+                            "r="+repo+
+                            "#"+hashString;
+
+                    openGitSenseWindow(href, false, window.innerHeight-55);
+                }
             }
         }
 
@@ -1272,7 +1382,7 @@ function receiveMessage(event) {
     else if ( key === "reload" )
         window.location.reload();
     else
-        console.log("Ignoring "+event.data);
+        console.warn("Ignoring event "+event.data);
 }
 
 function setHeight(height) {
@@ -1326,7 +1436,7 @@ function setHref(href) {
     window.location.href = href;
 }
 
-function openGitSenseWindow(href, max) {
+function openGitSenseWindow(href, max, height) {
     if ( overlayWindow !== null ) 
         overlayWindow.parentNode.removeChild(overlayWindow);
 
@@ -1342,7 +1452,9 @@ function openGitSenseWindow(href, max) {
         id: "overlay", 
         iframeSrc: url.href.replace(/#.+/, ""), 
         targetOrigin: url.origin, 
-        hash: url.hash 
+        hash: url.hash,
+        height: height,
+        noResize: height === undefined ? false : true
     };
 
     var msg    = JSON.stringify(params),
@@ -1386,6 +1498,7 @@ function createOverlayWindow(href, targetOrigin, max) {
     overlayWindow.style.border = "0px";
     overlayWindow.style.boxShadow = "0px 0px 26px 0px rgba(48,48,48,1)";
     overlayWindow.style.overflow = "hidden";
+    overlayWindow.style.minWidth = "500px";
 
     var title = document.createElement("div");
     title.style.backgroundColor = "black";
@@ -1465,7 +1578,7 @@ function createOverlayWindow(href, targetOrigin, max) {
     resize.style.width    = "5px";
     resize.style.cursor   = "col-resize";
     resize.style.zIndex   = overlayWindow.style.zIndex+1;
-    resize.style.backgroundColor = "transparent";
+    resize.style.backgroundColor = "1px solid black";
 
     document.body.appendChild(resize);
 
@@ -1489,7 +1602,7 @@ function createOverlayWindow(href, targetOrigin, max) {
         box.style.left     = (parseInt(overlayWindow.style.left) - 2)+"px";
         box.style.top      = overlayWindow.style.top;
         box.style.height   = parseInt(overlayWindow.style.height)+"px";
-        box.style.width    = (parseInt(overlayWindow.style.width) - 6)+"px";
+        box.style.width    = (parseInt(overlayWindow.style.width)+2)+"px";
         box.style.cursor   = "col-resize";
         box.style.border   = "2px solid #333";
 
@@ -1497,20 +1610,22 @@ function createOverlayWindow(href, targetOrigin, max) {
 
         screen.onmousemove = function(e) {
             var diff = parseInt(resize.style.left) - e.clientX;
-            box.style.width = (parseInt(overlayWindow.style.width)+diff)+"px";
+            box.style.width = (parseInt(overlayWindow.style.width)+diff+2)+"px";
             box.style.left  = e.clientX+"px";
         }
 
         screen.onmouseup = function(e) {
             screen.parentNode.removeChild(screen);
             screen = null;
-
-            var diff = parseInt(resize.style.left) - e.clientX;
-            overlayWindow.style.width = (parseInt(overlayWindow.style.width)+diff)+"px";
+    
+            overlayWindow.style.width = box.style.width;
             overlayWindow.style.left  = e.clientX+"px";
-            resize.style.left = e.clientX+"px";
+            resize.style.left         = (parseInt(overlayWindow.style.left) - 2)+"px";
             peekWidth = e.clientX;
-            iframe.contentWindow.postMessage("resize", targetOrigin);
+
+            iframe.contentWindow.postMessage(
+                "resize:"+parseInt(overlayWindow.style.width), targetOrigin
+            );
         }
     }
 
@@ -1538,7 +1653,9 @@ function createOverlayWindow(href, targetOrigin, max) {
             size.setAttribute("title", "Increase window width");
         }
 
-        iframe.contentWindow.postMessage("resize", targetOrigin);
+        iframe.contentWindow.postMessage(
+            "resize:"+parseInt(overlayWindow.style.width), targetOrigin
+        );
     }
 
     return { title: title, iframe: iframe };

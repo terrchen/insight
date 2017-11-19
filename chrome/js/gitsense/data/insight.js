@@ -81,6 +81,56 @@ sdes.gitsense.data.insight = function(rule, token) {
         });
     }
 
+    this.searchPoms = function(
+        host,
+        repos, 
+        branches,
+        args,
+        page,
+        range,
+        orderBy,
+        direction,
+        format,
+        callback
+    ) {
+        var data = { auth: auth };
+
+        if ( ! varUtil.isNoU(repos) )
+            data.r = repos.join("::");
+
+        if ( ! varUtil.isNoU(branches) && branches.length !== 0 )
+            data.b = branches.join("::");
+
+        if ( ! varUtil.isNoU(orderBy) )
+            data.order_by = orderBy;
+
+        if ( ! varUtil.isNoU(direction) )
+            data.direction = direction;
+
+        if ( ! varUtil.isNoU(page) )
+            data.page = page;
+
+        if ( ! varUtil.isNoU(range) )
+            data.range = range;
+
+        if ( ! varUtil.isNoU(format) )
+            data.format = format;
+
+        if ( ! varUtil.isNoU(args) )
+            data.q = args.join("+");
+
+        $.ajax({
+            url: baseUrl+"/"+host+"/search/poms",
+            data: data,
+            success: function(pomr) {
+                callback(pomr);
+            },
+            error: function(e) {
+                callback(null, e);
+            }
+        });
+    }
+
     this.stat = function(host, owner, repo, callback) {
         $.ajax({
             url: baseUrl+"/"+host+"/repos/"+owner+"/"+repo+"/stat",
