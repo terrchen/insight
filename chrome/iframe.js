@@ -38,7 +38,7 @@ function receiveMessage(event) {
             if ( event.data.match(/resize:/) )
                 window.innerWidth = parseInt(event.data.split(":")[1]);
 
-            if ( event.data.match(/^hash:/) || event.data.match(/resize/) )
+            if ( event.data.match(/^hash:/) || event.data.match(/resize/) || event.data.match(/init/) )
                 iframe.contentWindow.postMessage(event.data, "*");
 
             break;

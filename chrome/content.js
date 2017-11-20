@@ -688,7 +688,7 @@ function renderGitHubPage(rule, page) {
                             rule.gitsense.baseUrl+"/"+
                             "insight/"+
                             rule.host.type+
-                            "?ghe=true&"+
+                            "?ghee=true&"+
                             "r="+repo+
                             "#"+hashString;
 
@@ -1391,7 +1391,7 @@ function receiveMessage(event) {
         value  = temp1[1].replace(/^[^:]+:/, ""),
         rule   = new sdes.utils.config().getRule();
 
-    if ( sender !== "main" )
+    if ( sender !== "main" && sender !== "overlay" )
         return;
 
     if ( 
@@ -1402,26 +1402,27 @@ function receiveMessage(event) {
 
         if ( url.origin === window.location.origin )
             key = "href";
-    } 
+    }
 
-    if ( key === "height")
+    if ( key === "height") {
         setHeight(parseInt(value));
-    else if ( key === "hash" )
+    } else if ( key === "hash" ) {
         setHash(value);
-    else if ( key === "href" ) 
-        setHref(value);
-    else if ( key === "page" )
+    } else if ( key === "href" ) {
+        setHref(value, sender);
+    } else if ( key === "page" ) {
         gotoPage(value);
-    else if ( key.toLowerCase() === "gswin" )
+    } else if ( key.toLowerCase() === "gswin" ) { 
         openGitSenseWindow({href: value, maximize: key === "GSWIN" ? true : false});
-    else if ( key === "reload" )
+    } else if ( key === "reload" ) {
         window.location.reload();
-    else
+    } else {
         console.warn("Ignoring event "+event.data);
+    }
 }
 
 function setHeight(height) {
-    if ( height === lastHeight )
+    if ( height === lastHeight || gitsenseIframe === null )
         return;
 
     gitsenseIframe.style.height = height+"px";
@@ -1442,7 +1443,7 @@ function setHash(hash) {
     }
 }
 
-function setHref(href) {
+function setHref(href, sender) {
     var url = null;
 
     try {
@@ -1468,6 +1469,11 @@ function setHref(href) {
         return;
     }
 
+    if ( sender === "overlay" && overlayWindow !== null ) {
+        overlayWindow.parentNode.removeChild(overlayWindow);
+        overlayWindow = null;
+    } 
+
     window.location.href = href;
 }
 
@@ -1476,8 +1482,15 @@ function openGitSenseWindow(params) {
         maximize  = params.maximize,
         height    = params.height,
         maxHeight = params.maxHeight,
-        title     = params.title === undefined ? "GitSense" : params.title,
+        title     = params.title === undefined ? "GitSense insights" : params.title,
         icon      = params.icon  === undefined ? "octicon octicon-browser" : params.icon;
+
+    if ( href.match(/ghee=true/) ) {
+        maximize = true;
+
+        if ( params.title === undefined )
+            title = "GitSense review insights";
+    }
         
     if ( overlayWindow !== null ) 
         overlayWindow.parentNode.removeChild(overlayWindow);
@@ -1628,6 +1641,13 @@ function createOverlayWindow(label, icon, href, targetOrigin, maximize) {
     document.body.appendChild(resize);
 
     var screen = null;
+
+    setTimeout(
+        function() {
+            iframe.contentWindow.postMessage("init", targetOrigin);
+        },
+        1000
+    );
 
     resize.onmousedown = function(e) {
         screen = document.createElement("div");
