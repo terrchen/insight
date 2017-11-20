@@ -94,6 +94,17 @@ function renderGitSenseIframe() {
     iframe.setAttribute("src", params.iframeSrc+hash);
     renderTo.appendChild(iframe);
 
+    if ( params.maxHeight !== undefined ) {
+        setTimeout(
+            function() {
+                iframe.contentWindow.postMessage(
+                    "maxHeight:"+params.maxHeight, params.targetOrigin
+                );
+            },
+            1000
+        );
+    }
+
     if ( params.noResize )
         return;
 
@@ -105,9 +116,14 @@ function renderGitSenseIframe() {
         50
     );
 
-    function getFrameSize() { 
-        iframe.contentWindow.postMessage("height", params.targetOrigin);
-        setTimeout(getFrameSize, 500);
+    function getFrameSize() {
+        try { 
+            iframe.contentWindow.postMessage("height", params.targetOrigin);
+        } catch (e) {
+            console.log("exception thrown");
+        }
+
+        setTimeout(getFrameSize, 1000);
     }
 }
 

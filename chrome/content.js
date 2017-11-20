@@ -582,19 +582,15 @@ function renderGitHubPage(rule, page) {
                 var label =
                         htmlUtil.createSpan({
                             html: 
-                                "<span class='octicon octicon-link' "+
+                                "<span class='octicon octicon-graph' "+
                                     "style=''></span> "+
-                                    "GitSense",
+                                    "Review insights",
                         }),
 
-                    insightTab = 
+                    gitsense = 
                         htmlUtil.createLink({
                             id: "gitsense-pr-tab",
                             cls: "tabnav-tab",
-                            target: "_blank",
-                            href: 
-                                "/"+page.owner+"/"+page.repo+"?gitsense=insight"+
-                                "#"+locUtil.getHashString(hash),
                             append: [ label ],
                             style: {
                                 cursor: "pointer"
@@ -602,11 +598,37 @@ function renderGitHubPage(rule, page) {
                         });
 
                 if ( filesTab !== null )
-                    tabs.insertBefore(insightTab, filesTab.nextSibling);
+                    tabs.insertBefore(gitsense, filesTab.nextSibling);
                 else
-                    tabs.appendChild(insightTab);
+                    tabs.appendChild(gitsense);
 
-                return insightTab;
+                gitsense.onclick = function() {
+                    var hash = {
+                        branches: [ branch ],
+                        query: {
+                            oargs: ["diff:"+pull.fromSha+"..."+pull.toSha]
+                        },
+                    };
+
+                    if ( page.pull.selectedTab === "commits" )
+                        hash.tab = "commits";
+                    else 
+                        hash.tab = "diffcommits";
+
+                    var hashString = locUtil.getHashString(hash);
+
+                    var href = 
+                            rule.gitsense.baseUrl+"/"+
+                            "insight/"+
+                            rule.host.type+
+                            "?ghee=true&"+
+                            "r="+repo+
+                            "#"+hashString;
+
+                    openGitSenseWindow(href, true, undefined, window.innerHeight - 80);
+                }
+
+                return gitsense;
             }
 
             function addGitSenseAction(actions) {   
@@ -663,7 +685,7 @@ function renderGitHubPage(rule, page) {
                             "r="+repo+
                             "#"+hashString;
 
-                    openGitSenseWindow(href, false, window.innerHeight-55);
+                    openGitSenseWindow(href, true, window.innerHeight-55);
                 }
             }
         }
@@ -1436,7 +1458,7 @@ function setHref(href) {
     window.location.href = href;
 }
 
-function openGitSenseWindow(href, max, height) {
+function openGitSenseWindow(href, max, height, maxHeight) {
     if ( overlayWindow !== null ) 
         overlayWindow.parentNode.removeChild(overlayWindow);
 
@@ -1454,6 +1476,7 @@ function openGitSenseWindow(href, max, height) {
         targetOrigin: url.origin, 
         hash: url.hash,
         height: height,
+        maxHeight: maxHeight,
         noResize: height === undefined ? false : true
     };
 
@@ -1516,7 +1539,7 @@ function createOverlayWindow(href, targetOrigin, max) {
     extLink.setAttribute("title", "Open "+href+" in a new window");
     extLink.setAttribute("class", "sysfont");
     extLink.target = "_blank";
-    extLink.href = href;
+    extLink.href = href.replace(/ghe=true&/, "");
     extLink.style.fontWeight = "bold";
     extLink.style.display = "block";
     extLink.style.width = "500px";
@@ -1640,13 +1663,13 @@ function createOverlayWindow(href, targetOrigin, max) {
         var expand = size.className.match(/dash/) ? false : true;
 
         if ( expand ) {
-            resize.style.left         = "15px";
+            resize.style.left         = "13px";
             overlayWindow.style.left  = "15px";
             overlayWindow.style.width = (width - 15)+"px";
             size.setAttribute("class", size.className.replace("plus", "dash"));
             size.setAttribute("title", "Shrink window width");
         } else {
-            resize.style.left         = _peekWidth+"px";
+            resize.style.left         = (_peekWidth-2)+"px";
             overlayWindow.style.left  = _peekWidth+"px";
             overlayWindow.style.width = (width - _peekWidth)+"px";
             size.setAttribute("class", size.className.replace("dash", "plus"));
