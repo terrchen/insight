@@ -625,7 +625,14 @@ function renderGitHubPage(rule, page) {
                             "r="+repo+
                             "#"+hashString;
 
-                    openGitSenseWindow(href, true, undefined, window.innerHeight - 80);
+                    openGitSenseWindow({
+                        href: href, 
+                        maximize: true,
+                        height: window.innerHeight - 40,
+                        maxHeight: window.innerHeight - 80,
+                        title: "GitSense review insights",
+                        icon: "octicon octicon-graph"
+                    });
                 }
 
                 return gitsense;
@@ -685,7 +692,13 @@ function renderGitHubPage(rule, page) {
                             "r="+repo+
                             "#"+hashString;
 
-                    openGitSenseWindow(href, true, window.innerHeight-55);
+                    openGitSenseWindow({
+                        href: href,
+                        maximize: true, 
+                        height: window.innerHeight-40,
+                        title: "GitSense diffs browser",
+                        icon: "octicon octicon-diff"
+                    });
                 }
             }
         }
@@ -1235,7 +1248,7 @@ function renderGitLabPage(rule, page) {
                 link.style.cursor = "pointer";
 
                 link.onclick = function()  {
-                    openGitSenseWindow(href);
+                    openGitSenseWindow({href: href});
                 }
             }
         }
@@ -1321,7 +1334,7 @@ function renderGitLabPage(rule, page) {
                         "dc=false&"+
                         "dcl=&df=&dl=&dvm=";
 
-                    openGitSenseWindow(href);
+                    openGitSenseWindow({href:href});
                 }
             }
         }
@@ -1400,7 +1413,7 @@ function receiveMessage(event) {
     else if ( key === "page" )
         gotoPage(value);
     else if ( key.toLowerCase() === "gswin" )
-        openGitSenseWindow(value, key === "GSWIN" ? true : false);
+        openGitSenseWindow({href: value, maximize: key === "GSWIN" ? true : false});
     else if ( key === "reload" )
         window.location.reload();
     else
@@ -1458,7 +1471,14 @@ function setHref(href) {
     window.location.href = href;
 }
 
-function openGitSenseWindow(href, max, height, maxHeight) {
+function openGitSenseWindow(params) {
+    var href      = params.href,
+        maximize  = params.maximize,
+        height    = params.height,
+        maxHeight = params.maxHeight,
+        title     = params.title === undefined ? "GitSense" : params.title,
+        icon      = params.icon  === undefined ? "octicon octicon-browser" : params.icon;
+        
     if ( overlayWindow !== null ) 
         overlayWindow.parentNode.removeChild(overlayWindow);
 
@@ -1466,7 +1486,7 @@ function openGitSenseWindow(href, max, height, maxHeight) {
         resize.parentNode.removeChild(resize);
 
     var url = new URL(href),
-        win = createOverlayWindow(href, "*", max);
+        win = createOverlayWindow(title, icon, href, "*", maximize);
 
     win.iframe.src = chrome.runtime.getURL("frame.html");
 
@@ -1496,10 +1516,10 @@ function openGitSenseWindow(href, max, height, maxHeight) {
     }
 }
 
-function createOverlayWindow(href, targetOrigin, max) {
+function createOverlayWindow(label, icon, href, targetOrigin, maximize) {
     var width       = window.innerWidth - 30,
         height      = window.innerHeight - 25,
-        _peekWidth  = max ? 15 : peekWidth,
+        _peekWidth  = maximize ? 15 : peekWidth,
         titleHeight = 30;
 
     if ( 
@@ -1533,13 +1553,15 @@ function createOverlayWindow(href, targetOrigin, max) {
     var extLink = document.createElement("a");
 
     extLink.innerHTML = 
-        "<span class='octicon octicon-browser' style='margin-right:6px;'></span>"+
-        "Open in a separate window";
+        "<span class='"+icon+"' style='margin-right:5px;'></span>"+
+        label+
+        "<span class='octicon octicon-link-external' "+
+            "style='font-size:10px;margin-left:5px;position:relative;top:-1px;'></span>";
 
     extLink.setAttribute("title", "Open "+href+" in a new window");
     extLink.setAttribute("class", "sysfont");
     extLink.target = "_blank";
-    extLink.href = href.replace(/ghe=true&/, "");
+    extLink.href = href.replace(/&*ghee*=true&*/, "");
     extLink.style.fontWeight = "bold";
     extLink.style.display = "block";
     extLink.style.width = "500px";
@@ -1575,7 +1597,7 @@ function createOverlayWindow(href, targetOrigin, max) {
     size.style.fontWeight = "bold";
 
     var sizeCell = document.createElement("div");
-    sizeCell.style.display = max ? "none" : "table-cell";
+    sizeCell.style.display = maximize ? "none" : "table-cell";
     sizeCell.style.verticalAlign = "middle";
     sizeCell.appendChild(size);
 

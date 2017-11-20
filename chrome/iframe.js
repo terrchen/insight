@@ -85,7 +85,7 @@ function renderGitSenseIframe() {
 
     renderTo.innerHTML = "";
     renderTo.parentNode.style.padding = 0;
-    renderTo.style.height = params.height+"px" || null;
+    renderTo.style.height = params.height === undefined ? null : (params.height-15)+"px";
 
     iframe = document.createElement("iframe");
     iframe.style.width  = "100%";
