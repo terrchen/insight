@@ -294,7 +294,22 @@ sdes.github.utils.page = function(rule) {
                     selected = "files";
             }
 
-            return { tabs: tabs, selectedTab: selected, number: number };
+            var toolbarElems = 
+                    selected === "files" ?
+                        document.getElementsByClassName("pr-toolbar") :
+                        null;  
+
+            if ( selected === "files" && (toolbarElems === null || toolbarElems.length === 0) ) {
+                console.warn("Couldn't find the toolbar...aborting");
+                return null;
+            }
+
+            return { 
+                tabs: tabs, 
+                selectedTab: selected, 
+                number: number,
+                toolbar: selected === "files" ? toolbarElems[0] : null
+            };
         }
     }
 }

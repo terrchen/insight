@@ -547,10 +547,12 @@ function renderGitHubPage(rule, page) {
             var locUtil = new sdes.gitsense.utils.location();
 
             // For now, we'll just add the insight link
-            addGitSenseLink();
-
-            if ( page.pull.selectedTab !== "files" )
+            if ( page.pull.selectedTab !== "files" ) {
+                addGitSenseLink();
                 return;
+            }
+
+            addGitSenseButton();
 
             var elems = document.getElementsByClassName("file-actions");
 
@@ -604,40 +606,31 @@ function renderGitHubPage(rule, page) {
                 else
                     tabs.appendChild(gitsense);
 
-                gitsense.onclick = function() {
-                    var hash = {
-                        branches: [ branch ],
-                        query: {
-                            oargs: ["diff:"+pull.fromSha+"..."+pull.toSha]
-                        },
-                    };
-
-                    if ( page.pull.selectedTab === "commits" )
-                        hash.tab = "commits";
-                    else 
-                        hash.tab = "diffcommits";
-
-                    var hashString = locUtil.getHashString(hash);
-
-                    var href = 
-                            rule.gitsense.baseUrl+"/"+
-                            "insight/"+
-                            rule.host.type+
-                            "?ghee=true&"+
-                            "r="+repo+
-                            "#"+hashString;
-
-                    openGitSenseWindow({
-                        href: href, 
-                        maximize: true,
-                        height: window.innerHeight - 80,
-                        maxHeight: window.innerHeight - 120,
-                        title: "GitSense review insights",
-                        icon: "octicon octicon-light-bulb"
-                    });
-                }
+                gitsense.onclick = clickedReviewInsights;
 
                 return gitsense;
+            }
+
+            function addGitSenseButton() {
+                var reviewTools = document.getElementsByClassName("pr-review-tools")[0];
+
+                var gitsense = 
+                        htmlUtil.createLink({
+                            cls: "btn btn-sm octicon octicon-light-bulb",
+                            style: {
+                                fontSize: "14px"
+                            }
+                        }),
+
+                    body = 
+                        htmlUtil.createDiv({
+                            cls: "diffbar-item",
+                            append: [gitsense]
+                        });
+                    
+                reviewTools.insertBefore(body, reviewTools.children[0]);
+
+                gitsense.onclick = clickedReviewInsights;
             }
 
             function addGitSenseAction(actions) {   
@@ -703,6 +696,39 @@ function renderGitHubPage(rule, page) {
                     });
                 }
             }
+
+            function clickedReviewInsights() {
+                    var hash = {
+                        branches: [ branch ],
+                        query: {
+                            oargs: ["diff:"+pull.fromSha+"..."+pull.toSha]
+                        },
+                    };
+
+                    if ( page.pull.selectedTab === "commits" )
+                        hash.tab = "commits";
+                    else 
+                        hash.tab = "diffcommits";
+
+                    var hashString = locUtil.getHashString(hash);
+
+                    var href = 
+                            rule.gitsense.baseUrl+"/"+
+                            "insight/"+
+                            rule.host.type+
+                            "?ghee=true&"+
+                            "r="+repo+
+                            "#"+hashString;
+
+                    openGitSenseWindow({
+                        href: href, 
+                        maximize: true,
+                        height: window.innerHeight - 80,
+                        maxHeight: window.innerHeight - 120,
+                        title: "GitSense review insights",
+                        icon: "octicon octicon-light-bulb"
+                    });
+                }
         }
 
         function renderPulls() {
@@ -840,6 +866,7 @@ function renderGitHubPage(rule, page) {
                 }
             }
         }
+
         function addSearchNavs() {
             var navs      = page.search.navs,
                 typeToNav = page.search.typeToNav,
