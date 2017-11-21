@@ -221,29 +221,6 @@ function renderGitHubPage(rule, page) {
                 else if ( page.pulls !== null && numIndexedBranches != 0 )
                     renderPulls();
 
-                //if ( page.search !== null ) { 
-                //    var navs = page.search.typeToNav;
-
-                //    if ( numIndexedBranches === 0 ) {
-                //        $(navs.gscommits.counter).text("N/A");
-                //        $(navs.gscode.counter).text("N/A");
-                //        $(navs.gsdiffs.counter).text("N/A");
-                //    } else {
-                //        updateSearch(token, new Date().getTime() + 2000);
-                //    }
-
-                //    if ( 
-                //        page.search.selectedType !== "gscode" && 
-                //        page.search.selectedType !== "gscommits" && 
-                //        page.search.selectedType !== "gsdiffs" 
-                //    ) {
-                //        return;
-                //    }
-                //}
-
-                if ( ! page.show )
-                    return;
-
                 if ( githubRepo === null ) 
                     wait(new Date().getTime()+2000);
                 else
@@ -262,7 +239,18 @@ function renderGitHubPage(rule, page) {
                 }
 
                 function next() {
-                    var hostId = rule.host.type;
+                    var locUtil = new sdes.gitsense.utils.location(),
+                        hostId  = rule.host.type,
+
+                        hash = {
+                            tab: "commits",
+                            branches: [getDefaultBranchId(githubRepo)]
+                        };
+
+                    gitsenseTab.setAttribute(
+                        "href",
+                        gitsenseTab.getAttribute("href")+"#"+locUtil.getHashString(hash)
+                    );
 
                     var params = {
                         id: "main",
@@ -288,6 +276,9 @@ function renderGitHubPage(rule, page) {
                         height: "500px",
                         baseUrl: window.location.origin 
                     };
+
+                    if ( ! page.show )
+                        return;
 
                     $(renderTo).html("");
                     renderGitSense(renderTo, rule, params);
@@ -743,10 +734,7 @@ function renderGitHubPage(rule, page) {
                 var nav    = page.pulls.nav,
                     newBtn = null; 
 
-                console.dir(nav);
-
-                for ( var i = 0; i < nav.children.length; i++ ) 
-                {
+                for ( var i = 0; i < nav.children.length; i++ ) {
                     var elem = nav.children[i];
 
                     if ( elem.nodeName !== "A" )
@@ -768,7 +756,8 @@ function renderGitHubPage(rule, page) {
                             style: {
                                 cursor: "pointer",
                                 marginRight: "10px",
-                                color: "black"
+                                color: "black",
+                                fontSize: "14px"
                             }
                         });
 
@@ -1435,7 +1424,6 @@ function renderGitLabPage(rule, page) {
             function addIcons(elem) {
                 if ( elem.childNodes.length !== 3 ) {
                     console.warn("Don't know how to parse the following element");
-                    console.dir(elem);
                     halt = true;
                     return;
                 }
@@ -1444,7 +1432,6 @@ function renderGitLabPage(rule, page) {
 
                 if ( commitLink.tagName !== "A" ) {
                     console.warn("Don't know how to parse the following element");
-                    console.dir(elem);
                     halt = true;
                     return;
                 }
