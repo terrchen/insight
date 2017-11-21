@@ -35,7 +35,10 @@ function receiveMessage(event) {
 
     switch(event.origin) {
         case parentOrigin:
-            if ( event.data.match(/^hash:/) || event.data === "resize" )
+            if ( event.data.match(/resize:/) )
+                window.innerWidth = parseInt(event.data.split(":")[1]);
+
+            if ( event.data.match(/^hash:/) || event.data.match(/resize/) || event.data.match(/init/) )
                 iframe.contentWindow.postMessage(event.data, "*");
 
             break;
@@ -82,15 +85,28 @@ function renderGitSenseIframe() {
 
     renderTo.innerHTML = "";
     renderTo.parentNode.style.padding = 0;
-    renderTo.style.height = params.height || null;
+    renderTo.style.height = params.height === undefined ? null : (params.height-15)+"px";
 
     iframe = document.createElement("iframe");
-
     iframe.style.width  = "100%";
     iframe.style.height = "100%";
     iframe.style.border = 0;
     iframe.setAttribute("src", params.iframeSrc+hash);
     renderTo.appendChild(iframe);
+
+    if ( params.maxHeight !== undefined ) {
+        setTimeout(
+            function() {
+                iframe.contentWindow.postMessage(
+                    "maxHeight:"+params.maxHeight, params.targetOrigin
+                );
+            },
+            1000
+        );
+    }
+
+    if ( params.noResize )
+        return;
 
     setTimeout(
         function() {
@@ -100,9 +116,14 @@ function renderGitSenseIframe() {
         50
     );
 
-    function getFrameSize() { 
-        iframe.contentWindow.postMessage("height", params.targetOrigin);
-        setTimeout(getFrameSize, 500);
+    function getFrameSize() {
+        try { 
+            iframe.contentWindow.postMessage("height", params.targetOrigin);
+        } catch (e) {
+            console.log("exception thrown");
+        }
+
+        setTimeout(getFrameSize, 1000);
     }
 }
 

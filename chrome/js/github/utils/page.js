@@ -82,6 +82,7 @@ sdes.github.utils.page = function(rule) {
             repo      = names.shift(),
             home      = names.length === 0 ? true : false,
             search    = names.length !== 0 && names[0] === "search" ? true : false,
+            pulls     = names.length !== 0 && names[0] === "pulls" ? true : false,
             pull      = names.length !== 0 && names[0] === "pull" ? true : false,
             show      = window.location.search.match(/gitsense=insight/) ? true : false,
             stopAt    = new Date().getTime() + 1000,
@@ -89,9 +90,6 @@ sdes.github.utils.page = function(rule) {
             iframeId  = "gitsense-content-iframe",
             container = document.getElementById(trackerId),
             iframe    = document.getElementById(iframeId);
-
-        if ( ! search && lastGitSenseShow && show )
-            return;
 
         if ( container !== null ) {
             stopAt += 2000;
@@ -127,7 +125,7 @@ sdes.github.utils.page = function(rule) {
 
             var containers = document.getElementsByClassName("container");
 
-            if ( containers === null || containers.length < 4 ) {
+            if ( containers === null || containers.length < 3 ) {
                 setTimeout(findContainers, 50);
                 return;
             }
@@ -140,11 +138,11 @@ sdes.github.utils.page = function(rule) {
             for ( var i = 0; i < containers.length; i++ ) {
                 var container = containers[i];
 
-                if ( container.className === "container" && ! search ) {
+                if ( container.className.match(/js-repo-nav/) && ! search ) {
                     if ( container.childNodes === undefined || container.childNodes[1] === undefined )
                         continue;
 
-                    tabs = container.childNodes[1];
+                    tabs = container;
                 } else if ( 
                     (container.className === "container" && search) ||
                     (container.className.match(/experiment-repo-nav/) && ! search)
@@ -157,12 +155,14 @@ sdes.github.utils.page = function(rule) {
                 }
             }
 
-            var prtabs = pull ? document.getElementsByClassName("tabnav-pr") : null;
+            var prtabs   = pull ? document.getElementsByClassName("tabnav-pr") : null,
+                pullsNav = pulls ? document.getElementsByClassName("subnav") : null;
 
             if ( 
-                (tabs === null && ! search) || 
+                (tabs === null && !search) || 
                 content === null ||
-                (pull && (prtabs === null || prtabs.length === 0 ))
+                (pull && (prtabs === null || prtabs.length === 0)) ||
+                (pulls && (pullsNav === null || pullsNav.length === 0))
             ) {
                 setTimeout(findContainers, 50);
                 return;
@@ -204,7 +204,8 @@ sdes.github.utils.page = function(rule) {
                 content: content,
                 fileNav: fileNav,
                 branch: branch,
-                pull: pull ? getPull(prtabs[0]) : null
+                pull: pull ? getPull(prtabs[0]) : null,
+                pulls: pulls ? { nav: pullsNav[0] } : null
             });
         }
 
@@ -275,7 +276,25 @@ sdes.github.utils.page = function(rule) {
             if ( tabs === null )
                 return null;
 
-            return { tabs: tabs, number: number };
+            var selected = "";
+
+            for ( var i = 0; i < tabs.children.length; i++ ) {
+                var tab = tabs.children[i];
+
+                if ( ! tab.className.match(/selected/) )
+                    continue;
+    
+                var text = tab.innerText.toLowerCase();
+
+                if ( text.match(/conversation/) )
+                    selected = "conversation";
+                else if ( text.match(/commits/) )
+                    selected = "commits";
+                else if ( text.match(/files/) )
+                    selected = "files";
+            }
+
+            return { tabs: tabs, selectedTab: selected, number: number };
         }
     }
 }
