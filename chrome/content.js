@@ -716,7 +716,7 @@ function renderGitHubPage(rule, page) {
                         maximize: true,
                         height: window.innerHeight - 80,
                         maxHeight: window.innerHeight - 120,
-                        title: "GitSense review insights",
+                        title: "GitSense code review insights",
                         icon: "octicon octicon-light-bulb"
                     });
                 }
@@ -1590,7 +1590,9 @@ function setHash(hash) {
 
     if ( window.location.hash !== hash ) {
         window.location.hash = hash;
-        gitsenseIframe.contentWindow.postMessage("hash:"+hash, "*");
+
+        if ( gitsenseIframe !== null )
+            gitsenseIframe.contentWindow.postMessage("hash:"+hash, "*");
     }
 }
 
@@ -1621,8 +1623,11 @@ function setHref(href, sender) {
     }
 
     if ( sender === "overlay" && overlayWindow !== null ) {
-        overlayWindow.parentNode.removeChild(overlayWindow);
-        overlayWindow = null;
+        overlayWindow.style.display = "none";
+        overlayWindow.reopen = true;
+        resize.style.display = "none";
+        //overlayWindow.parentNode.removeChild(overlayWindow);
+        //overlayWindow = null;
     } 
 
     window.location.href = href;
@@ -1640,11 +1645,18 @@ function openGitSenseWindow(params) {
         maximize = true;
 
         if ( params.title === undefined )
-            title = "GitSense review insights";
+            title = "GitSense code review insights";
     }
         
-    if ( overlayWindow !== null ) 
+    if ( overlayWindow !== null ) {
+        if ( overlayWindow.href === href && overlayWindow.reopen ) {
+            overlayWindow.style.display = null;
+            resize.style.display = null;
+            return;
+        }
+            
         overlayWindow.parentNode.removeChild(overlayWindow);
+    }
 
     if ( resize !== null )
         resize.parentNode.removeChild(resize);
@@ -1698,6 +1710,7 @@ function createOverlayWindow(label, icon, href, targetOrigin, maximize) {
     }
 
     overlayWindow = document.createElement("body");
+    overlayWindow.href = href; 
     overlayWindow.style.width  = (width - _peekWidth)+"px";
     overlayWindow.style.height = height+"px";
     overlayWindow.style.backgroundColor = "white";
