@@ -159,6 +159,9 @@ function renderGitHubPage(rule, page) {
     if ( page === null )
         return;
 
+    console.log("page");
+    console.dir(page);
+
     if ( page.type === "org" )
         return;   // Not supporting for now
     else if ( page.type === "repo" )
@@ -175,7 +178,7 @@ function renderGitHubPage(rule, page) {
             gitsenseTab     = null,
             stopAnimation   = false;
 
-        if ( page.tabs !== undefined && page.search === null )
+        if ( page.tabs !== undefined )
             gitsenseTab = addGitSenseTab();
 
         if ( page.show ) 
@@ -209,7 +212,7 @@ function renderGitHubPage(rule, page) {
                 stopAnimation = true;
 
                 if ( error !== undefined ) {
-                    gitsenseTab.bulb.style.color = "red";
+                    gitsenseTab.style.color = "red";
                     throw error;
                 }
 
@@ -434,7 +437,8 @@ function renderGitHubPage(rule, page) {
                     href: "/"+page.owner+"/"+page.repo+"?gitsense=insight",
                     append: [ label, counter ],
                     style: {
-                        cursor: "pointer"
+                        cursor: "pointer",
+                        float: "right"
                     }
                 });
 

@@ -1,32 +1,31 @@
 var lastGitSenseShow = null;
 
 sdes.github.utils.page = function(rule) {
-    var varUtil = new sdes.utils.variable();
+    let varUtil = new sdes.utils.variable();
 
     this.parse = function(callback) {
-        var names = window.location.pathname.replace(/^\/|\/$/, "").split(/\//);
+        let names  = window.location.pathname.replace(/^\/|\/$/, "").split(/\//);
 
         if ( names[names.length - 1] === "" )
             names.pop();
 
-        if ( names.length === 1 && names[0] === "login" ) {
+        // See if we are looking at a search page
+        if ( (names.length === 1 && names[0] === search) || (names.length === 3 && names[2] === "search") ) {
+            names.pop();
+            parseSearchPage(names, callback);
+        } else if ( names.length === 1 && names[0] === "login" ) {
             callback(null);
-            return;
+        } else if ( names.length >= 2 ) {
+            parseRepoPage(names, callback);
+        } else {
+            throw("We don't know how to parse the current path: "+window.location.pathname);
         }
-
-        if ( names.length !== 1 && names[0] !== "orgs" ) {
-            if ( names.length > 1 )
-                parseRepo(names, callback);
-            else 
-                callback(null);
-
-            return;
-        }
-
-        parseOrg(names.length === 1 ? names[0] : names[1], callback);
     }
 
-    function parseOrg(name, callback) {
+    function parseSearchPage() {
+    }
+
+    function parseOrgPage(name, callback) {
         var show   = window.location.search.match(/gitsense=insight/) ? true : false,
             stopAt = new Date().getTime()+2000;
 
@@ -77,11 +76,10 @@ sdes.github.utils.page = function(rule) {
         }
     }
 
-    function parseRepo(names, callback) {
+    function parseRepoPage(names, callback) {
         var owner     = names.shift(),
             repo      = names.shift(),
             home      = names.length === 0 ? true : false,
-            search    = names.length !== 0 && names[0] === "search" ? true : false,
             pulls     = names.length !== 0 && names[0] === "pulls" ? true : false,
             pull      = names.length !== 0 && names[0] === "pull" ? true : false,
             show      = window.location.search.match(/gitsense=insight/) ? true : false,
@@ -123,75 +121,87 @@ sdes.github.utils.page = function(rule) {
                 return;
             }
 
-            var containers = document.getElementsByClassName("container");
+            // Get the tabs container
+            let elems = document.getElementsByClassName("js-repo-nav");
 
-            if ( containers === null || containers.length < 3 ) {
+            if ( elems === null ) {
                 setTimeout(findContainers, 50);
                 return;
             }
 
-            var tabs    = null,
-                content = null,
-                fileNav = null,
-                branch  = null;
+            let tabs = elems[0];
 
-            for ( var i = 0; i < containers.length; i++ ) {
-                var container = containers[i];
+            // Get the contents container
+            elems = document.getElementsByClassName("container-lg");
 
-                if ( container.className.match(/js-repo-nav/) && ! search ) {
-                    if ( container.childNodes === undefined || container.childNodes[1] === undefined )
-                        continue;
-
-                    tabs = container;
-                } else if ( 
-                    (container.className === "container" && search) ||
-                    (container.className.match(/experiment-repo-nav/) && ! search)
-                ) {
-                    content    = container;
-                    content.id = trackerId;
-
-                    if ( show )
-                        $(content).hide();
-                }
-            }
-
-            var prtabs   = pull ? document.getElementsByClassName("tabnav-pr") : null,
-                pullsNav = pulls ? document.getElementsByClassName("subnav") : null;
-
-            if ( 
-                (tabs === null && !search) || 
-                content === null ||
-                (pull && (prtabs === null || prtabs.length === 0)) ||
-                (pulls && (pullsNav === null || pullsNav.length === 0))
-            ) {
+            if ( elems === null || elems.length < 1) {
                 setTimeout(findContainers, 50);
                 return;
             }
 
-            if ( home ) {
-                var fileNavElems = document.getElementsByClassName("file-navigation"),
-                    selectElems  = document.getElementsByClassName("branch-select-menu");
+            let content = elems[0];
 
-                if ( 
-                    fileNavElems === null || 
-                    fileNavElems.length === 0 ||
-                    selectElems === null ||
-                    selectElems.length === 0 ||
-                    selectElems[0].children.length === 0 
-                ) {
-                    setTimeout(findContainers, 50);
-                    return;
-                }
+            //var content = null,
+            //    fileNav = null,
+            //    branch  = null;
 
-                fileNav = fileNavElems[0];
+            //for ( var i = 0; i < containers.length; i++ ) {
+            //    var container = containers[i];
 
-                var button = selectElems[0].children[0],
-                    type   = button.children[0].innerHTML.replace(/^ /, ""),
-                    value  = button.children[1].innerHTML.replace(/^ /g, "");
+            //    if ( container.className.match(/js-repo-nav/) && ! search ) {
+            //        if ( container.childNodes === undefined || container.childNodes[1] === undefined )
+            //            continue;
 
-                if ( type === "Branch:" )
-                    branch = value;
-            }
+            //        tabs = container;
+            //    } else if ( 
+            //        (container.className === "container" && search) ||
+            //        (container.className.match(/experiment-repo-nav/) && ! search)
+            //    ) {
+            //        content    = container;
+            //        content.id = trackerId;
+
+            //        if ( show )
+            //            $(content).hide();
+            //    }
+            //}
+
+            //var prtabs   = pull ? document.getElementsByClassName("tabnav-pr") : null,
+            //    pullsNav = pulls ? document.getElementsByClassName("subnav") : null;
+
+            //if ( 
+            //    (tabs === null && !search) || 
+            //    content === null ||
+            //    (pull && (prtabs === null || prtabs.length === 0)) ||
+            //    (pulls && (pullsNav === null || pullsNav.length === 0))
+            //) {
+            //    setTimeout(findContainers, 50);
+            //    return;
+            //}
+
+            //if ( home ) {
+            //    var fileNavElems = document.getElementsByClassName("file-navigation"),
+            //        selectElems  = document.getElementsByClassName("branch-select-menu");
+
+            //    if ( 
+            //        fileNavElems === null || 
+            //        fileNavElems.length === 0 ||
+            //        selectElems === null ||
+            //        selectElems.length === 0 ||
+            //        selectElems[0].children.length === 0 
+            //    ) {
+            //        setTimeout(findContainers, 50);
+            //        return;
+            //    }
+
+            //    fileNav = fileNavElems[0];
+
+            //    var button = selectElems[0].children[0],
+            //        type   = button.children[0].innerHTML.replace(/^ /, ""),
+            //        value  = button.children[1].innerHTML.replace(/^ /g, "");
+
+            //    if ( type === "Branch:" )
+            //        branch = value;
+            //}
 
             callback({
                 type: "repo",
@@ -200,12 +210,12 @@ sdes.github.utils.page = function(rule) {
                 home: home,
                 show: show,
                 tabs: tabs,
-                search: search ? getSearch() : null,
-                content: content,
-                fileNav: fileNav,
-                branch: branch,
-                pull: pull ? getPull(prtabs[0]) : null,
-                pulls: pulls ? { nav: pullsNav[0] } : null
+                content: content
+                //search: search ? getSearch() : null,
+                //fileNav: fileNav,
+                //branch: branch,
+                //pull: pull ? getPull(prtabs[0]) : null,
+                //pulls: pulls ? { nav: pullsNav[0] } : null
             });
         }
 

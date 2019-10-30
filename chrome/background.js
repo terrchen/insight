@@ -15,7 +15,7 @@ var requiredGitSenseJSFiles = [
         "js/gitlab/data/user.js",
         "js/gitlab/data/repo.js",
         "js/gitlab/utils/page.js",
-        "js/gitsense/data/auth.js",
+        //"js/gitsense/data/auth.js",
         "js/gitsense/data/insight.js",
         "js/gitsense/data/repo.js",
         "js/gitsense/utils/location.js",
@@ -30,21 +30,26 @@ chrome.tabs.onUpdated.addListener(
         if (changeInfo.status !== "loading") 
             return
 
-        var code = 
+        var code =
             "var injected = window.injectedGitSense;"+
             "window.injectedGitSense = true;"+
             "injected;";
 
-        chrome.tabs.executeScript(tabId, {code:code, runAt:"document_start"}, inject);
- 
-        function inject(res) {
-            if ( chrome.runtime.lastError !== undefined ) {
-                if ( chrome.runtime.lastError.message.match(/permission/i) )
-                    return;
-                else
-                    throw(chrome.runtime.lastError);
+        chrome.tabs.executeScript(
+            tabId, 
+            {code:code, runAt:"document_start"},
+            (res) => {
+                let e = chrome.runtime.lastError;
+
+                if ( e !== undefined ) {
+                    console.log(tabId, res, e);
+                } else {
+                    inject(res);
+                }
             }
-        
+        );
+
+        function inject(res) {
             // This is true if we have already injected our code
             if ( res[0] )
                 return;
